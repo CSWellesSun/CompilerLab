@@ -1,0 +1,9 @@
+# Dir
+.*/
+build/
+
+# MacOS Cache
+.DS_Store
+
+# File
+*.json
