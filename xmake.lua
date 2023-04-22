@@ -2,8 +2,7 @@ add_rules("mode.debug", "mode.release")
 
 target("compiler")
     set_kind("binary")
-    add_rules("lex", "yacc") -- 当lex/yacc文件名为.ll/.yy时编译为cpp
-    add_files("src/lexer/*.ll", "src/parser/*.yy", "src/**/*.cpp", "src/*.cpp")
+    add_files("src/**/*.cpp", "src/*.cpp")
     add_includedirs("include")
     set_rundir(".") -- 设置运行时根目录，相对路径从项目根目录开始
     if is_plat("windows") then

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cctype>
+#include <string>
+
 namespace minisolc {
 
 /// 完整的solidity语言token，T表示token，K表示keyword
@@ -218,11 +221,19 @@ namespace minisolc {
 /// Token
 enum class Token : unsigned int {
 #define T(name, string, precedence) name,
-	TOKEN_LIST(T, T) 
-	NUM_TOKENS
+	TOKEN_LIST(T, T) NUM_TOKENS
 #undef T
 
 };
 
+Token keywordByName(std::string _name);
+char const* tokenToString(Token tok);
 
+constexpr bool isalus(char c) { return std::isalpha(c) || c == '_'; };
+constexpr bool isalnumus(char c) { return std::isalpha(c) || std::isdigit(c) || c == '_'; };
+constexpr bool isoct(char c) { return c >= '0' && c <= '7'; };
+constexpr bool isdigithead(char c) { return c >= '1' && c <= '9'; };
+constexpr bool isxdigithead(char c) { return isdigithead(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); };
+constexpr bool isocthead(char c) { return c >= '1' && c <= '7'; };
+constexpr bool issep(char c) { return std::isspace(c) || c == ';'; }
 }
