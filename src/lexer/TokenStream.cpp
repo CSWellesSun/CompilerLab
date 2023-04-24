@@ -73,7 +73,7 @@ bool TokenStream::tokenizeNumber() {
 			m_tokens.push_back({Token::Int, "0"});
 		} else if (m_source.current() == 'x' || m_source.current() == 'X') { // 十六进制数
 			m_source.advance();
-			if (m_source.eof() || !isxdigithead(m_source.current())) { // 非法十六进制
+			if (m_source.eof() || !isxdigit(m_source.current())) { // 非法十六进制
 				res = false;
 			} else { // 读取十六进制数
 				while (!m_source.eof() && isxdigit(m_source.current())) {
@@ -86,7 +86,7 @@ bool TokenStream::tokenizeNumber() {
 					res = false;
 				}
 			}
-		} else if (isocthead(m_source.current())) { // 八进制数
+		} else if (isoct(m_source.current())) { // 八进制数
 			while (!m_source.eof() && isoct(m_source.current())) {
 				m_source.advance();
 			}
