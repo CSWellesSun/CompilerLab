@@ -71,6 +71,7 @@ private:
 	void tokenize();
 	void tokenizeKeywordIdent();
 	bool tokenizeNumber();
+	bool tokenizeString();
 	void skipSpace();
 
 	struct TokenInfo {

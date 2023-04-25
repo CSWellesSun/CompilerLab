@@ -49,6 +49,10 @@ private:
     bool parseTypeName(std::unique_ptr<BaseAST>&);
     bool parseElementaryTypeName(std::unique_ptr<BaseAST>&);
     bool parseBlock(std::unique_ptr<BaseAST>&);
+    bool parseStatement(std::unique_ptr<BaseAST>&);
+    bool parseReturn(std::unique_ptr<BaseAST>&);
+    bool parseExpression(std::unique_ptr<BaseAST>&);
+    bool parsePrimaryExpression(std::unique_ptr<BaseAST>&);
 
 	TokenStream& m_source;
     std::unique_ptr<BaseAST> m_root;

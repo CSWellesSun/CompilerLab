@@ -7,11 +7,15 @@
 using namespace minisolc;
 
 void TokenStream::tokenize() {
-	/// TODO: uint256后的数字未处理
 	while (!m_source.eof() && !m_error) {
 		m_source.mark();
 		char c = m_source.current();
+		bool res;
 		switch (c) {
+		case '=':
+			m_source.advance();
+			m_tokens.push_back({Token::Assign, "="});
+			break;
 		case '(':
 			m_source.advance();
 			m_tokens.push_back({Token::LParen, "("});
@@ -47,18 +51,19 @@ void TokenStream::tokenize() {
 		case '\0':
 			m_source.advance();
 			break;
+		case '\"':
+			res = tokenizeString();
+			m_error = !res;
+			break;
 		default: {
 			if (isalus(c)) {
 				tokenizeKeywordIdent();
 			} else if (isdigit(c)) {
-				bool res = tokenizeNumber();
+				res = tokenizeNumber();
 				m_error = !res;
 			} else if (isspace(c)) { // 空格略过
 				skipSpace();
 			} else {
-				// std::cout << "Unknown char: " << c << std::endl;
-				// std::cout << "Unknown char Int: " << (int)c << std::endl;
-				// std::cout << "Unknown char Index: " << m_source.position() << std::endl;
 				m_error = true;
 			}
 			break;
@@ -81,7 +86,7 @@ bool TokenStream::tokenizeNumber() {
 	if (m_source.current() == '0') { // 八进制数
 		m_source.advance();
 		if (m_source.eof() || issep(m_source.current())) { // zero
-			m_tokens.push_back({Token::Int, "0"});
+			m_tokens.push_back({Token::Number, "0"});
 		} else if (m_source.current() == 'x' || m_source.current() == 'X') { // 十六进制数
 			m_source.advance();
 			if (m_source.eof() || !isxdigit(m_source.current())) { // 非法十六进制
@@ -92,7 +97,7 @@ bool TokenStream::tokenizeNumber() {
 				}
 				if (m_source.eof() || issep(m_source.current())) { // 十六进制数结束后为eof或空或分号
 					std::string val = m_source.text(m_source.markPos(), m_source.position());
-					m_tokens.push_back({Token::Int, val});
+					m_tokens.push_back({Token::Number, val});
 				} else { // 非法十六进制
 					res = false;
 				}
@@ -103,7 +108,7 @@ bool TokenStream::tokenizeNumber() {
 			}
 			if (m_source.eof() || issep(m_source.current())) { // 八进制数结束后为eof或空或分号
 				std::string val = m_source.text(m_source.markPos(), m_source.position());
-				m_tokens.push_back({Token::Int, val});
+				m_tokens.push_back({Token::Number, val});
 			} else { // 非法八进制
 				res = false;
 			}
@@ -116,7 +121,7 @@ bool TokenStream::tokenizeNumber() {
 		}
 		if (m_source.eof() || issep(m_source.current())) { // 十进制数结束后为eof或空或分号
 			std::string val = m_source.text(m_source.markPos(), m_source.position());
-			m_tokens.push_back({Token::Int, val});
+			m_tokens.push_back({Token::Number, val});
 		} else { // 非法非进制
 			res = false;
 		}
@@ -129,4 +134,21 @@ void TokenStream::skipSpace() {
 	while (!m_source.eof() && isspace(m_source.current())) {
 		m_source.advance();
 	}
+}
+
+bool TokenStream::tokenizeString() {
+	while (!m_source.eof() && m_source.current() != '\"') {
+		if (m_source.current() == '\r' || m_source.current() == '\n') {
+			return false;
+		}
+		m_source.advance();
+	}
+	if (m_source.eof()) {
+		return false;
+	} else if (m_source.current() == '\"') {
+		m_source.advance();
+		std::string val = m_source.text(m_source.markPos(), m_source.position());
+		m_tokens.push_back({Token::StringLiteral, val});
+	} 	
+	return true;
 }

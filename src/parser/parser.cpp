@@ -68,7 +68,26 @@ bool Parser::parseContractPart(std::unique_ptr<BaseAST>& in) {
 	return res;
 }
 
-bool Parser::parseStateVariableDeclaration(std::unique_ptr<BaseAST>& in) { return false; }
+bool Parser::parseStateVariableDeclaration(std::unique_ptr<BaseAST>& in) {
+	size_t pos = m_source.pos();
+	auto stateVarDecl = std::make_unique<StateVariableDeclarationAST>();
+	bool res = parseTypeName(stateVarDecl->type) && matchGet(Token::Identifier, stateVarDecl->ident);
+	if (!res) {
+		m_source.setPos(pos);
+		return false;
+	}
+	if (m_source.curVal() == "=") {
+		match("=");
+		res = res && parseExpression(stateVarDecl->expr);
+	}
+	res = res && match(";");
+	if (res) {
+		in = std::move(stateVarDecl);
+	} else {
+		m_source.setPos(pos);
+	}
+	return res;
+}
 
 bool Parser::parseFunctionDefinition(std::unique_ptr<BaseAST>& in) {
 	size_t pos = m_source.pos();
@@ -111,9 +130,7 @@ bool Parser::parseParameterList(std::unique_ptr<BaseAST>& in) {
 		std::string ident;
 		res = res && parseTypeName(param) && matchGet(Token::Identifier, ident);
 		if (res) {
-			/// NOTE:
 			paramList->params.push_back(std::make_pair(std::move(param), ident));
-			
 			// other parameters
 			while (m_source.curVal() != "" && m_source.curVal() != ")") {
 				res = res && match(",") && parseTypeName(param) && matchGet(Token::Identifier, ident);
@@ -177,16 +194,16 @@ bool Parser::parseBlock(std::unique_ptr<BaseAST>& in) {
 	size_t pos = m_source.pos();
 	auto block = std::make_unique<BlockAST>();
 	bool res = match("{");
-	// while (m_source.curVal() != "" && m_source.curVal() != "}") {
-	// 	auto stmt = std::make_unique<BaseAST>();
-	// 	res = res && parseStatement(stmt);
-	// 	if (res) {
-	// 		block->stmts.push_back(std::move(stmt));
-	// 	} else {
-	// 		m_source.setPos(pos);
-	// 		return false;
-	// 	}
-	// }
+	while (m_source.curVal() != "" && m_source.curVal() != "}") {
+		auto stmt = std::make_unique<BaseAST>();
+		res = res && parseStatement(stmt);
+		if (res) {
+			block->stmts.push_back(std::move(stmt));
+		} else {
+			m_source.setPos(pos);
+			return false;
+		}
+	}
 	res = res && match("}");
 	if (res) {
 		in = std::move(block);
@@ -194,4 +211,79 @@ bool Parser::parseBlock(std::unique_ptr<BaseAST>& in) {
 		m_source.setPos(pos);
 	}
 	return res;
+}
+
+bool Parser::parseStatement(std::unique_ptr<BaseAST>& in) {
+	size_t pos = m_source.pos();
+	auto stmt = std::make_unique<StatementAST>();
+	bool res = parseReturn(stmt->child) && match(";");
+	if (res) {
+		in = std::move(stmt);
+		return true;
+	} else {
+		m_source.setPos(pos);
+		return false;
+	}
+}
+
+bool Parser::parseReturn(std::unique_ptr<BaseAST>& in) {
+	size_t pos = m_source.pos();
+	auto ret = std::make_unique<ReturnAST>();
+	bool res = match("return");
+	if (m_source.curVal() != ";") {
+		res = res && parseExpression(ret->expr);
+	}
+	if (res) {
+		in = std::move(ret);
+	} else {
+		m_source.setPos(pos);
+	}
+	return res;
+}
+
+bool Parser::parseExpression(std::unique_ptr<BaseAST>& in) {
+	size_t pos = m_source.pos();
+	auto expr = std::make_unique<ExpressionAST>();
+	bool res = parsePrimaryExpression(expr->child);
+	if (res) {
+		in = std::move(expr);
+	} else {
+		m_source.setPos(pos);
+	}
+	return res;
+}
+
+bool Parser::parsePrimaryExpression(std::unique_ptr<BaseAST>& in) {
+	size_t pos = m_source.pos();
+	auto primExpr = std::make_unique<PrimaryExpressionAST>();
+	switch (m_source.curTok()) {
+		case Token::Identifier: [[fallthrough]];
+		case Token::TrueLiteral: [[fallthrough]];
+		case Token::FalseLiteral: [[fallthrough]];
+		case Token::StringLiteral: [[fallthrough]];
+		case Token::Number:
+			primExpr->child = m_source.curVal();
+			m_source.advance();
+			// Number Unit
+			switch (m_source.curTok()) {
+				case Token::SubWei: [[fallthrough]];
+				case Token::SubGwei: [[fallthrough]];
+				case Token::SubEther: [[fallthrough]];
+				case Token::SubSecond: [[fallthrough]];
+				case Token::SubMinute: [[fallthrough]];
+				case Token::SubHour: [[fallthrough]];
+				case Token::SubDay: [[fallthrough]];
+				case Token::SubWeek: [[fallthrough]];
+				case Token::SubYear: 
+					primExpr->child += m_source.curVal();
+					m_source.advance();
+					break;
+				default: break;
+			}
+			in = std::move(primExpr);
+			return true;
+		default:
+			m_source.setPos(pos);
+			return false;	 	
+	}
 }

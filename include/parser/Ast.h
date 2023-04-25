@@ -59,11 +59,17 @@ public:
 
 class StateVariableDeclarationAST : public BaseAST {
 public:
-  std::string type;
+  std::unique_ptr<BaseAST> type;
   std::string ident;
-  std::unique_ptr<BaseAST> expr;
+  std::unique_ptr<BaseAST> expr; // optional
 
-  void Dump() const override {}
+  void Dump() const override {
+    std::cout << "StateVariableDeclarationAST { ";
+    type->Dump();
+    std::cout << ", " << ident << ", ";
+    if (expr) expr->Dump();
+    std::cout << " }";
+  }
 };
 
 // FuncDef 也是 BaseAST
@@ -120,29 +126,58 @@ public:
   void Dump() const override { std::cout << "ElementaryTypeNameAST { " << type << " }"; }
 };
 
-/// TODO:
-// ...
-class FuncTypeAST : public BaseAST {
-public:
-  std::string type;
-
-  void Dump() const override { std::cout << "FuncTypeAST { " << type << " }"; }
-};
-
 class BlockAST : public BaseAST {
 public:
-  std::unique_ptr<BaseAST> stmt;
+  std::vector<std::unique_ptr<BaseAST>> stmts;
 
   void Dump() const override {
     std::cout << "BlockAST { ";
-    // stmt->Dump();
+    for (auto &stmt : stmts) {
+      stmt->Dump();
+      std::cout << ", ";
+    }
     std::cout << " }";
   }
 };
 
-class StmtAST : public BaseAST {
+class StatementAST : public BaseAST {
 public:
-  int val;
+  std::unique_ptr<BaseAST> child;
 
-  void Dump() const override { std::cout << "StmtAST { " << val << " }"; }
+  void Dump() const override {
+    std::cout << "StatementAST { ";
+    child->Dump();
+    std::cout << " }";
+  }
+};
+
+class ReturnAST : public BaseAST {
+public:
+  std::unique_ptr<BaseAST> expr; // optional
+
+  void Dump() const override {
+    std::cout << "ReturnAST { ";
+    if (expr) expr->Dump();
+    std::cout << " }";
+  }
+};
+
+class ExpressionAST : public BaseAST {
+public:
+  std::unique_ptr<BaseAST> child;
+
+  void Dump() const override {
+    std::cout << "ExpressionAST { ";
+    child->Dump();
+    std::cout << " }";
+  }
+};
+
+class PrimaryExpressionAST : public BaseAST {
+public:
+  std::string child;
+
+  void Dump() const override {
+    std::cout << "PrimaryExpressionAST { " << child << " }";
+  }
 };
