@@ -1,6 +1,7 @@
-#include <iostream>
 #include "lexer/TokenStream.h"
 #include "parser/Parser.h"
+#include <iostream>
+
 using namespace std;
 using namespace minisolc;
 
