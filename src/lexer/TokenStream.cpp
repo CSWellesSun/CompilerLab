@@ -150,6 +150,6 @@ bool TokenStream::tokenizeString() {
 		m_source.advance();
 		std::string val = m_source.text(m_source.markPos(), m_source.position());
 		m_tokens.push_back({Token::StringLiteral, val});
-	} 	
+	}
 	return true;
 }
