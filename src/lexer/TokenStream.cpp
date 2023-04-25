@@ -137,6 +137,7 @@ void TokenStream::skipSpace() {
 }
 
 bool TokenStream::tokenizeString() {
+	m_source.advance();
 	while (!m_source.eof() && m_source.current() != '\"') {
 		if (m_source.current() == '\r' || m_source.current() == '\n') {
 			return false;

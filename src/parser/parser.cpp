@@ -256,11 +256,17 @@ bool Parser::parseExpression(std::unique_ptr<BaseAST>& in) {
 bool Parser::parsePrimaryExpression(std::unique_ptr<BaseAST>& in) {
 	size_t pos = m_source.pos();
 	auto primExpr = std::make_unique<PrimaryExpressionAST>();
+	std::cout << "parsePrimaryExpr: " << m_source.curVal() << std::endl;
+	std::cout << "parsePrimaryExpr: " << (int)m_source.curTok() << std::endl;
 	switch (m_source.curTok()) {
 		case Token::Identifier: [[fallthrough]];
 		case Token::TrueLiteral: [[fallthrough]];
 		case Token::FalseLiteral: [[fallthrough]];
-		case Token::StringLiteral: [[fallthrough]];
+		case Token::StringLiteral: 
+			primExpr->child = m_source.curVal();
+			m_source.advance();
+			in = std::move(primExpr);
+			return true;
 		case Token::Number:
 			primExpr->child = m_source.curVal();
 			m_source.advance();
