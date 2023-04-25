@@ -39,6 +39,9 @@ void TokenStream::tokenize() {
 			m_source.advance();
 			m_tokens.push_back({Token::Semicolon, ";"});
 			break;
+		case '\0':
+			m_source.advance();
+			break;
 		default: {
 			if (isalus(c)) {
 				tokenizeKeywordIdent();
@@ -48,6 +51,9 @@ void TokenStream::tokenize() {
 			} else if (isspace(c)) { // 空格略过
 				skipSpace();
 			} else {
+				// std::cout << "Unknown char: " << c << std::endl;
+				// std::cout << "Unknown char Int: " << (int)c << std::endl;
+				// std::cout << "Unknown char Index: " << m_source.position() << std::endl;
 				m_error = true;
 			}
 			break;

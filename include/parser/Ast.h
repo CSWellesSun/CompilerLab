@@ -46,7 +46,7 @@ public:
 class ContractPartAST : public BaseAST {
 public:
   // 用智能指针管理对象
-  // StateVariableDefinitionAST / FuncDefAST
+  // StateVariableDeclarationAST / FuncDefAST
   std::unique_ptr<BaseAST> child;
 
   void Dump() const override {
@@ -56,8 +56,17 @@ public:
   }
 };
 
+class StateVariableDeclarationAST : public BaseAST {
+public:
+  std::string type;
+  std::string ident;
+  std::unique_ptr<BaseAST> expr;
+
+  void Dump() const override {}
+};
+
 // FuncDef 也是 BaseAST
-class FuncDefAST : public BaseAST {
+class FunctionDefinitionAST : public BaseAST {
 public:
   std::string ident;
   std::unique_ptr<BaseAST> param_list;
@@ -76,6 +85,13 @@ public:
     block->Dump();
     std::cout << " }";
   }
+};
+
+class ParameterListAST : public BaseAST {
+public:
+  std::vector<std::pair<std::string, std::string>> params;
+
+  void Dump() const override {}
 };
 
 /// TODO:

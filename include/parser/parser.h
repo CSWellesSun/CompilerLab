@@ -12,6 +12,9 @@ class Parser {
 public:
 	Parser(TokenStream& source): m_source(source) {}
     bool parse();
+    void Dump() const {
+        if (m_root) m_root->Dump();
+    }
 
 private:
     bool match(Token tok) {
@@ -33,6 +36,11 @@ private:
 
     bool parseSourceUnit(std::unique_ptr<BaseAST>&);
     bool parseContractDefinition(std::unique_ptr<BaseAST>&);
+    bool parseContractPart(std::unique_ptr<BaseAST>&);
+    bool parseStateVariableDeclaration(std::unique_ptr<BaseAST>&);
+    bool parseFunctionDefinition(std::unique_ptr<BaseAST>&);
+    bool parseStateMutability(std::unique_ptr<BaseAST>&);
+    bool parseParameterList(std::unique_ptr<BaseAST>&);
 
 	TokenStream& m_source;
     std::unique_ptr<BaseAST> m_root;
