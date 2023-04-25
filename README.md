@@ -1,1 +1,1 @@
-# CompilerLab
+# MiniSolc

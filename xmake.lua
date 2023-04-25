@@ -2,13 +2,13 @@ add_rules("mode.debug", "mode.release")
 
 target("compiler")
     set_kind("binary")
-    add_rules("lex", "yacc") -- 当lex/yacc文件名为.ll/.yy时编译为cpp
-    add_files("src/lexer/*.ll", "src/parser/*.yy", "src/**/*.cpp", "src/*.cpp")
+    add_files("src/**/*.cpp", "src/*.cpp")
     add_includedirs("include")
     set_rundir(".") -- 设置运行时根目录，相对路径从项目根目录开始
     if is_plat("windows") then
         add_toolchains("gcc") -- 默认clang，windows环境下使用gcc
     end
+    add_cxxflags("-Wall", "-Wextra", "-Werror", "-Wno-unused")
     
 --
 -- If you want to known more usage about xmake, please see https://xmake.io
