@@ -7,10 +7,9 @@ using namespace minisolc;
 
 int main(int argc, const char* argv[]) {
 	auto input = argv[1];
-	CharStream charStream(std::string(input), CharStream::File);
-	TokenStream tokenStream(charStream);
+	TokenStream tokenStream(input);
 	tokenStream.dump();
-	cout << endl;
+	cout << '\n';
 	Parser parser(tokenStream);
 	parser.parse();
 	parser.Dump();
