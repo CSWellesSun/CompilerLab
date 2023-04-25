@@ -7,6 +7,7 @@
 using namespace minisolc;
 
 void TokenStream::tokenize() {
+	/// TODO: uint256后的数字未处理
 	while (!m_source.eof() && !m_error) {
 		m_source.mark();
 		char c = m_source.current();
@@ -38,6 +39,10 @@ void TokenStream::tokenize() {
 		case ';':
 			m_source.advance();
 			m_tokens.push_back({Token::Semicolon, ";"});
+			break;
+		case ',':
+			m_source.advance();
+			m_tokens.push_back({Token::Comma, ","});
 			break;
 		case '\0':
 			m_source.advance();

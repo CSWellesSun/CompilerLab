@@ -1,6 +1,5 @@
 contract Test {
 
-    function main() public {
-        
+    function main(int a, uint b) public view returns (uint) {
     }
 }

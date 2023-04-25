@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <memory>
+#include <stdlib.h>
 #include <string>
 #include <vector>
 
@@ -10,7 +11,7 @@ class BaseAST {
 public:
   virtual ~BaseAST() = default;
 
-  virtual void Dump() const = 0;
+  virtual void Dump() const {};
 };
 
 // SourceUnit 是 BaseAST
@@ -71,7 +72,7 @@ public:
   std::string ident;
   std::unique_ptr<BaseAST> param_list;
   std::vector<std::string> state_muts;
-  std::string return_type;
+  std::unique_ptr<BaseAST> return_type; // optional
   std::unique_ptr<BaseAST> block;
 
   void Dump() const override {
@@ -81,7 +82,7 @@ public:
     for (auto &state_mut : state_muts) {
       std::cout << state_mut << ", ";
     }
-    std::cout << return_type << ", ";
+    if (return_type) return_type->Dump();
     block->Dump();
     std::cout << " }";
   }
@@ -89,9 +90,34 @@ public:
 
 class ParameterListAST : public BaseAST {
 public:
-  std::vector<std::pair<std::string, std::string>> params;
+  std::vector<std::pair<std::unique_ptr<BaseAST>, std::string>> params; // type, ident
 
-  void Dump() const override {}
+  void Dump() const override {
+    std::cout << "ParameterListAST { ";
+    for (auto &param : params) {
+      param.first->Dump();
+      std::cout << ", " << param.second << ", ";
+    }
+    std::cout << " }";
+  }
+};
+
+class TypeNameAST : public BaseAST {
+public:
+  std::unique_ptr<BaseAST> elem_type;
+
+  void Dump() const override { 
+    std::cout << "TypeNameAST { ";
+    elem_type->Dump();
+    std::cout << " }";
+  }
+};
+
+class ElementaryTypeNameAST : public BaseAST {
+public:
+  std::string type;
+
+  void Dump() const override { std::cout << "ElementaryTypeNameAST { " << type << " }"; }
 };
 
 /// TODO:
@@ -109,7 +135,7 @@ public:
 
   void Dump() const override {
     std::cout << "BlockAST { ";
-    stmt->Dump();
+    // stmt->Dump();
     std::cout << " }";
   }
 };

@@ -33,14 +33,22 @@ private:
         m_source.advance();
         return res;
     }
+    bool matchGet(std::string val, std::string& out) {
+        bool res = m_source.curVal() == val;
+        out = m_source.curVal();
+        m_source.advance();
+        return res;
+    }
 
     bool parseSourceUnit(std::unique_ptr<BaseAST>&);
     bool parseContractDefinition(std::unique_ptr<BaseAST>&);
     bool parseContractPart(std::unique_ptr<BaseAST>&);
     bool parseStateVariableDeclaration(std::unique_ptr<BaseAST>&);
     bool parseFunctionDefinition(std::unique_ptr<BaseAST>&);
-    bool parseStateMutability(std::unique_ptr<BaseAST>&);
     bool parseParameterList(std::unique_ptr<BaseAST>&);
+    bool parseTypeName(std::unique_ptr<BaseAST>&);
+    bool parseElementaryTypeName(std::unique_ptr<BaseAST>&);
+    bool parseBlock(std::unique_ptr<BaseAST>&);
 
 	TokenStream& m_source;
     std::unique_ptr<BaseAST> m_root;
@@ -54,8 +62,7 @@ private:
 /// ContractDefinition = 'contract' Identifier '{' ContractPart* '}'
 /// ContractPart = StateVariableDeclaration | FunctionDefinition
 /// StateVariableDeclaration = TypeName Identifier ('=' Expression)? ';'
-/// FunctionDefinition = 'function' Identifier ParameterList (StateMutability | 'external' | 'public' | 'internal' | 'private')* ('returns' TypeName)? Block
-/// StateMutability = 'pure' | 'const' | 'view' | 'payable'
+/// FunctionDefinition = 'function' Identifier ParameterList ('pure' | 'view' | 'payable' | 'external' | 'public' | 'internal' | 'private')* ('returns' TypeName)? Block
 ///
 /// ParameterList = '(' (TypeName Identifier (',' TypeName Identifier)*)? ')'
 /// TypeName = ElementaryTypeName
