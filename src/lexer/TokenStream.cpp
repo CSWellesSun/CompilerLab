@@ -1,67 +1,64 @@
 #include "lexer/TokenStream.h"
 #include "lexer/Token.h"
 
+#include <algorithm>
 #include <cctype>
 #include <iostream>
 
 using namespace minisolc;
 
 void TokenStream::tokenize() {
-	while (!m_source.eof() && !m_error) {
-		m_source.mark();
-		char c = m_source.current();
-		bool res;
+	while (m_striter != m_source.end() && !m_error) {
+		const char c = *m_striter;
 		switch (c) {
 		case '=':
-			m_source.advance();
+			++m_striter; // advance
 			m_tokens.push_back({Token::Assign, "="});
 			break;
 		case '(':
-			m_source.advance();
+			++m_striter;
 			m_tokens.push_back({Token::LParen, "("});
 			break;
 		case ')':
-			m_source.advance();
+			++m_striter;
 			m_tokens.push_back({Token::RParen, ")"});
 			break;
 		case '[':
-			m_source.advance();
+			++m_striter;
 			m_tokens.push_back({Token::LBrack, "["});
 			break;
 		case ']':
-			m_source.advance();
+			++m_striter;
 			m_tokens.push_back({Token::RBrack, "]"});
 			break;
 		case '{':
-			m_source.advance();
+			++m_striter;
 			m_tokens.push_back({Token::LBrace, "{"});
 			break;
 		case '}':
-			m_source.advance();
+			++m_striter;
 			m_tokens.push_back({Token::RBrace, "}"});
 			break;
 		case ';':
-			m_source.advance();
+			++m_striter;
 			m_tokens.push_back({Token::Semicolon, ";"});
 			break;
 		case ',':
-			m_source.advance();
+			++m_striter;
 			m_tokens.push_back({Token::Comma, ","});
 			break;
 		case '\0':
-			m_source.advance();
+			++m_striter;
 			break;
 		case '\"':
-			res = tokenizeString();
-			m_error = !res;
+			m_error = !tokenizeString();
 			break;
 		default: {
 			if (isalus(c)) {
 				tokenizeKeywordIdent();
 			} else if (isdigit(c)) {
-				res = tokenizeNumber();
-				m_error = !res;
-			} else if (isspace(c)) { // 空格略过
+				m_error = !tokenizeNumber();
+			} else if (isspace(c)) {
 				skipSpace();
 			} else {
 				m_error = true;
@@ -69,87 +66,57 @@ void TokenStream::tokenize() {
 			break;
 		}
 		}
+		// LOG_INFO("find token: %s", m_tokens.back().val.c_str());
 	}
 }
 
 void TokenStream::tokenizeKeywordIdent() {
-	while (!m_source.eof() && isalnumus(m_source.current())) {
-		m_source.advance();
-	}
-	std::string val = m_source.text(m_source.markPos(), m_source.position());
-	m_tokens.push_back({keywordByName(val), val});
+	auto right_bound = std::find_if_not(m_striter, m_source.cend(), [](const char ch) { return isalnumus(ch); });
+	std::string val = std::string(m_striter, right_bound);
+	m_tokens.emplace_back(keywordByName(val), val);
+	m_striter = right_bound;
 }
 
 bool TokenStream::tokenizeNumber() {
 	bool res = true;
-
-	if (m_source.current() == '0') { // 八进制数
-		m_source.advance();
-		if (m_source.eof() || issep(m_source.current())) { // zero
-			m_tokens.push_back({Token::Number, "0"});
-		} else if (m_source.current() == 'x' || m_source.current() == 'X') { // 十六进制数
-			m_source.advance();
-			if (m_source.eof() || !isxdigit(m_source.current())) { // 非法十六进制
-				res = false;
-			} else { // 读取十六进制数
-				while (!m_source.eof() && isxdigit(m_source.current())) {
-					m_source.advance();
+	auto right_bound = std::find_if(m_striter, m_source.cend(), [](const char ch) { return issep(ch); });
+	std::string val = std::string(m_striter, right_bound);
+	if (val.size() > 1) {
+		try {
+			if (val[0] == '0') {
+				if (val[1] == 'x' || val[1] == 'X') {
+					// Hexadecimal
+					std::stoll(val, 0, 16);
+				} else {
+					// Octal
+					std::stoll(val, 0, 8);
 				}
-				if (m_source.eof() || issep(m_source.current())) { // 十六进制数结束后为eof或空或分号
-					std::string val = m_source.text(m_source.markPos(), m_source.position());
-					m_tokens.push_back({Token::Number, val});
-				} else { // 非法十六进制
-					res = false;
-				}
+			} else {
+				std::stoll(val);
 			}
-		} else if (isoct(m_source.current())) { // 八进制数
-			while (!m_source.eof() && isoct(m_source.current())) {
-				m_source.advance();
-			}
-			if (m_source.eof() || issep(m_source.current())) { // 八进制数结束后为eof或空或分号
-				std::string val = m_source.text(m_source.markPos(), m_source.position());
-				m_tokens.push_back({Token::Number, val});
-			} else { // 非法八进制
-				res = false;
-			}
-		} else { // error!
-			res = false;
-		}
-	} else { // 十进制数
-		while (!m_source.eof() && isdigit(m_source.current())) {
-			m_source.advance();
-		}
-		if (m_source.eof() || issep(m_source.current())) { // 十进制数结束后为eof或空或分号
-			std::string val = m_source.text(m_source.markPos(), m_source.position());
-			m_tokens.push_back({Token::Number, val});
-		} else { // 非法非进制
+		} catch (...) {
+			LOG_WARNING("Cannot tokenize the number.");
 			res = false;
 		}
 	}
-
+	m_tokens.emplace_back(Token::Number, std::move(val));
+	m_striter = right_bound;
 	return res;
 }
 
 void TokenStream::skipSpace() {
-	while (!m_source.eof() && isspace(m_source.current())) {
-		m_source.advance();
-	}
+	m_striter = std::find_if_not(m_striter, m_source.cend(), [](const char ch) { return isspace(ch); });
 }
 
 bool TokenStream::tokenizeString() {
-	m_source.advance();
-	while (!m_source.eof() && m_source.current() != '\"') {
-		if (m_source.current() == '\r' || m_source.current() == '\n') {
-			return false;
-		}
-		m_source.advance();
-	}
-	if (m_source.eof()) {
+	auto right_quot = std::find(m_striter + 1, m_source.cend(), '\"');
+	if (right_quot == m_source.end())
+	{
+		LOG_WARNING("Missing '\"'");
 		return false;
-	} else if (m_source.current() == '\"') {
-		m_source.advance();
-		std::string val = m_source.text(m_source.markPos(), m_source.position());
-		m_tokens.push_back({Token::StringLiteral, val});
 	}
+	std::string&& val = std::string(m_striter, right_quot + 1);
+	m_tokens.emplace_back(Token::StringLiteral, std::move(val));
+	m_striter = right_quot + 1;
 	return true;
 }

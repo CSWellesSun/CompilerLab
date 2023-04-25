@@ -1,8 +1,9 @@
 #pragma once
 
-#include "CharStream.h"
+
 #include "Token.h"
-#include <corecrt.h>
+#include "defs.h"
+#include <fstream>
 #include <iostream>
 #include <vector>
 
@@ -11,58 +12,65 @@ namespace minisolc {
 
 class TokenStream {
 public:
-	TokenStream(CharStream& source): m_source(source) {
+	TokenStream(const std::string& filename) {
+		std::ifstream file(filename);
+		if (file.is_open()) {
+			/* load input file stream into string */
+			m_source = std::string((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
+			file.close();
+		} else {
+			LOG_WARNING("Program does not open file %s", filename.c_str());
+			m_source = "";
+			return;
+		}
+		m_striter = m_source.cbegin();
 		tokenize();
-		m_len = m_tokens.size();
-		if (m_error || m_len == 0) {
-			m_eof = true;
-		}
+		mtokeniter = m_tokens.cbegin();
+		if(!m_error)
+			LOG_INFO("tokenize succeeds.");
 	}
 
-	Token curTok() {
-		if (m_eof)
+	Token curTok() const {
+		if (mtokeniter == m_tokens.cend())
 			return Token::EOS;
-		return m_tokens.at(m_pos).token;
+		return mtokeniter->token;
 	}
-	std::string curVal() {
-		if (m_eof)
+	std::string curVal() const {
+		if (mtokeniter == m_tokens.cend())
 			return "";
-		return m_tokens.at(m_pos).val;
+		return mtokeniter->val;
 	}
-	Token peekTok(size_t count) {
-		if (m_eof || m_pos + count >= m_len)
+	Token peekTok(size_t count) const {
+		if (mtokeniter == m_tokens.cend() || mtokeniter + count >= m_tokens.cend())
 			return Token::EOS;
-		return m_tokens.at(m_pos + count).token;
+		return (mtokeniter + count)->token;
 	}
-	std::string peekVal(size_t count) {
-		if (m_eof || m_pos + count >= m_len)
+	std::string peekVal(size_t count) const {
+		if (mtokeniter == m_tokens.cend() || mtokeniter + count >= m_tokens.cend())
 			return "";
-		return m_tokens.at(m_pos + count).val;
+		return (mtokeniter + count)->val;
 	}
+
 	bool advance() {
-		if (m_pos < m_len) {
-			m_pos++;
-			if (m_pos >= m_len)
-				m_eof = true;
+		if (mtokeniter < m_tokens.cend()) {
+			++mtokeniter;
 		}
-		return !m_eof;
+		return mtokeniter != m_tokens.cend();
 	}
 
-
-	size_t pos() { return m_pos; }
+	size_t pos() const { return mtokeniter - m_tokens.cbegin(); }
 	void setPos(size_t pos) {
-		if (pos < m_len)
-			m_pos = pos;
+		if (pos < m_tokens.size())
+			mtokeniter = pos + m_tokens.cbegin();
 		else {
-			m_pos = m_len;
-			m_eof = true;
+			mtokeniter = m_tokens.cend();
 		}
 	}
-	bool eof() { return m_eof; }
-	bool error() { return m_error; }
-	void dump() {
-		std::cout << m_len << std::endl;
-		for (auto tokenInfo: m_tokens) {
+	bool eof() const { return mtokeniter == m_tokens.cend(); }
+	bool error() const { return m_error; }
+	void dump() const {
+		std::cout << m_tokens.size() << '\n';
+		for (const auto& tokenInfo: m_tokens) {
 			std::cout << tokenInfo.val << " ";
 		}
 	}
@@ -77,14 +85,18 @@ private:
 	struct TokenInfo {
 		Token token;
 		std::string val;
+		TokenInfo(const Token tok, const std::string& v) : token(tok), val(v) {};
+		TokenInfo(const Token tok, std::string&& v) : token(tok), val(v) {};
 	};
 
-	CharStream& m_source;
+	std::string m_source;
+
+	std::string::const_iterator m_striter;
+
 	std::vector<TokenInfo> m_tokens;
-	bool m_error{false};
-	size_t m_pos{0};
-	size_t m_len{0};
-	bool m_eof{false};
+	std::vector<TokenInfo>::const_iterator mtokeniter;
+
+	bool m_error = false;
 };
 
 }
