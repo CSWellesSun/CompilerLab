@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+namespace minisolc {
+
 // 所有 AST 的基类
 class BaseAST {
 public:
@@ -178,7 +180,10 @@ public:
 
 class PrimaryExpressionAST: public BaseAST {
 public:
-	std::string child;
+	enum { BooleanLiteral, NumberLiteral, StringLiteral, Identifier } type;
+	std::string val;
 
-	void Dump() const override { std::cout << "PrimaryExpressionAST { " << child << " }"; }
+	void Dump() const override { std::cout << "PrimaryExpressionAST { " << val << " }"; }
 };
+
+}

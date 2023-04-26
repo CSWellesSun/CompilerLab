@@ -253,18 +253,24 @@ bool Parser::parsePrimaryExpression(std::unique_ptr<BaseAST>& in) {
 	auto primExpr = std::make_unique<PrimaryExpressionAST>();
 	switch (m_source.curTok()) {
 	case Token::Identifier:
-		[[fallthrough]];
+		primExpr->type = PrimaryExpressionAST::Identifier;
+		primExpr->val = m_source.curVal();
+		break;
 	case Token::TrueLiteral:
-		[[fallthrough]];
+		primExpr->type = PrimaryExpressionAST::BooleanLiteral;
+		primExpr->val = m_source.curVal();
+		break;
 	case Token::FalseLiteral:
-		[[fallthrough]];
+		primExpr->type = PrimaryExpressionAST::BooleanLiteral;
+		primExpr->val = m_source.curVal();
+		break;
 	case Token::StringLiteral:
-		primExpr->child = m_source.curVal();
-		m_source.advance();
-		in = std::move(primExpr);
-		return true;
+		primExpr->type = PrimaryExpressionAST::StringLiteral;
+		primExpr->val = m_source.curVal();
+		break;
 	case Token::Number:
-		primExpr->child = m_source.curVal();
+		primExpr->type = PrimaryExpressionAST::NumberLiteral;
+		primExpr->val = m_source.curVal();
 		m_source.advance();
 		// Number Unit
 		switch (m_source.curTok()) {
@@ -285,7 +291,7 @@ bool Parser::parsePrimaryExpression(std::unique_ptr<BaseAST>& in) {
 		case Token::SubWeek:
 			[[fallthrough]];
 		case Token::SubYear:
-			primExpr->child += m_source.curVal();
+			primExpr->val += " " + m_source.curVal();
 			m_source.advance();
 			break;
 		default:
@@ -297,4 +303,7 @@ bool Parser::parsePrimaryExpression(std::unique_ptr<BaseAST>& in) {
 		m_source.setPos(pos);
 		return false;
 	}
+	m_source.advance();
+	in = std::move(primExpr);
+	return true;
 }

@@ -13,8 +13,162 @@ void TokenStream::tokenize() {
 		switch (c) {
 		case '=':
 			++m_striter; // advance
-			m_tokens.push_back({Token::Assign, "="});
+			if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::Equal, "=="});
+				++m_striter;
+			} else if (m_striter != m_source.end() && *m_striter == '>') {
+				m_tokens.push_back({Token::DoubleArrow, "=>"});
+				++m_striter;
+			} else {
+				m_tokens.push_back({Token::Assign, "="});
+			}
 			break;
+		case '+':
+			++m_striter;
+			if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::AssignAdd, "+="});
+				++m_striter;
+			} else if (m_striter != m_source.end() && *m_striter == '+') {
+				m_tokens.push_back({Token::Inc, "++"});
+				++m_striter;
+			} else {
+				m_tokens.push_back({Token::Add, "+"});
+			}
+			break;
+		case '-':
+			++m_striter;
+			if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::AssignSub, "-="});
+				++m_striter;
+			} else if (m_striter != m_source.end() && *m_striter == '>') {
+				m_tokens.push_back({Token::RightArrow, "->"});
+				++m_striter;
+			} else if (m_striter != m_source.end() && *m_striter == '-') {
+				m_tokens.push_back({Token::Dec, "--"});
+				++m_striter;
+			} else {
+				m_tokens.push_back({Token::Sub, "-"});
+			}
+			break;
+		case '*':
+			++m_striter;
+			if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::AssignMul, "*="});
+				++m_striter;
+			} else if (m_striter != m_source.end() && *m_striter == '*') {
+				m_tokens.push_back({Token::Exp, "**"});
+				++m_striter;
+			} else {
+				m_tokens.push_back({Token::Mul, "*"});
+			}
+			break;
+		case '/':
+			++m_striter;
+			if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::AssignDiv, "/="});
+				++m_striter;
+			} else if (m_striter != m_source.end() && *m_striter == '/') {
+				// comment
+				while (m_striter != m_source.end() && *m_striter != '\n') {
+					++m_striter;
+				}
+			} else {
+				m_tokens.push_back({Token::Div, "/"});
+			}
+			break;
+		case '%':
+			++m_striter;
+			if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::AssignMod, "%="});
+				++m_striter;
+			} else {
+				m_tokens.push_back({Token::Mod, "%"});
+			}
+			break;
+		case '!':
+			++m_striter;
+			if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::NotEqual, "!="});
+				++m_striter;
+			} else {
+				m_tokens.push_back({Token::Not, "!"});
+			}
+			break;
+		case '>':
+			++m_striter;
+			if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::GreaterThanOrEqual, ">="});
+				++m_striter;
+			} else if (m_striter != m_source.end() && *m_striter == '>') {
+				if (m_striter + 1 != m_source.end() && *(m_striter + 1) == '=') {
+					if (m_striter + 2 != m_source.end() && *(m_striter + 2) == '>') {
+						m_tokens.push_back({Token::AssignSar, ">>>="});
+						m_striter += 3;
+					} else {
+						m_tokens.push_back({Token::AssignShr, ">>="});
+						m_striter += 2;
+					}
+				} else {
+					m_tokens.push_back({Token::SAR, ">>"});
+					++m_striter;
+				}	
+			} else {
+				m_tokens.push_back({Token::GreaterThan, ">"});
+			}
+			break;
+		case '<':
+			++m_striter;
+			if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::LessThanOrEqual, "<="});
+				++m_striter;
+			} else if (m_striter != m_source.end() && *m_striter == '<') {
+				if (m_striter + 1 != m_source.end() && *(m_striter + 1) == '=') {
+					m_tokens.push_back({Token::AssignShl, "<<="});
+					m_striter += 2;
+				} else {
+					m_tokens.push_back({Token::SHL, "<<"});
+					++m_striter;
+				}
+			} else {
+				m_tokens.push_back({Token::LessThan, "<"});
+			}
+			break;
+		case '&':
+			++m_striter;
+			if (m_striter != m_source.end() && *m_striter == '&') {
+				m_tokens.push_back({Token::And, "&&"});
+				++m_striter;
+			} else if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::AssignBitAnd, "&="});
+				++m_striter;
+			} else {
+				m_tokens.push_back({Token::BitAnd, "&"});
+			}
+			break;
+		case '|':
+			++m_striter;
+			if (m_striter != m_source.end() && *m_striter == '|') {
+				m_tokens.push_back({Token::Or, "||"});
+				++m_striter;
+			} else if (m_striter != m_source.end() && *m_striter == '=') {
+				m_tokens.push_back({Token::AssignBitOr, "|="});
+				++m_striter;
+			} else {
+				m_tokens.push_back({Token::BitOr, "|"});
+			}
+			break;	
+		case '~':
+			++m_striter;
+			m_tokens.push_back({Token::BitNot, "~"});
+			break;
+		case '?':
+			++m_striter;
+			m_tokens.push_back({Token::Conditional, "?"});
+			break;
+		case ':':
+			++m_striter;
+			m_tokens.push_back({Token::Colon, ":"});
+			break;	
 		case '(':
 			++m_striter;
 			m_tokens.push_back({Token::LParen, "("});
@@ -110,8 +264,7 @@ void TokenStream::skipSpace() {
 
 bool TokenStream::tokenizeString() {
 	auto right_quot = std::find(m_striter + 1, m_source.cend(), '\"');
-	if (right_quot == m_source.end())
-	{
+	if (right_quot == m_source.end()) {
 		LOG_WARNING("Missing '\"'");
 		return false;
 	}

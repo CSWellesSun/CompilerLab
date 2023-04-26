@@ -80,7 +80,31 @@ private:
 /// Block = '{' Statement* '}'
 /// Statement = Return ';'
 /// Return = 'return' Expression?
-/// Expression = PrimaryExpression
+
+// // Precedence by order (see github.com/ethereum/solidity/pull/732)
+// Expression
+//   = Expression ('++' | '--')
+//   | NewExpression
+//   | IndexAccess
+//   | MemberAccess
+//   | FunctionCall
+//   | '(' Expression ')'
+//   | ('!' | '~' | 'delete' | '++' | '--' | '+' | '-') Expression
+//   | Expression '**' Expression
+//   | Expression ('*' | '/' | '%') Expression
+//   | Expression ('+' | '-') Expression
+//   | Expression ('<<' | '>>') Expression
+//   | Expression '&' Expression
+//   | Expression '^' Expression
+//   | Expression '|' Expression
+//   | Expression ('<' | '>' | '<=' | '>=') Expression
+//   | Expression ('==' | '!=') Expression
+//   | Expression '&&' Expression
+//   | Expression '||' Expression
+//   | Expression '?' Expression ':' Expression
+//   | Expression ('=' | '|=' | '^=' | '&=' | '<<=' | '>>=' | '+=' | '-=' | '*=' | '/=' | '%=') Expression
+//   | PrimaryExpression
+
 /// PrimaryExpression = BooleanLiteral
 ///                   | NumberLiteral
 ///                   | StringLiteral
