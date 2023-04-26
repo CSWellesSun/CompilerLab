@@ -52,7 +52,10 @@ bool Parser::parseContractDefinition(std::unique_ptr<BaseAST>& in) {
 bool Parser::parseContractPart(std::unique_ptr<BaseAST>& in) {
 	size_t pos = m_source.pos();
 	auto contractPart = std::make_unique<ContractPartAST>();
-	bool res = parseStateVariableDeclaration(contractPart->child) || parseFunctionDefinition(contractPart->child);
+	bool res
+		= (contractPart->type = ContractPartAST::StateVariableDeclaration,
+		   parseStateVariableDeclaration(contractPart->child))
+		  || (contractPart->type = ContractPartAST::FunctionDefinition, parseFunctionDefinition(contractPart->child));
 	if (res) {
 		in = std::move(contractPart);
 	} else {
@@ -239,13 +242,17 @@ bool Parser::parseReturn(std::unique_ptr<BaseAST>& in) {
 bool Parser::parseExpression(std::unique_ptr<BaseAST>& in) {
 	size_t pos = m_source.pos();
 	auto expr = std::make_unique<ExpressionAST>();
-	bool res = parsePrimaryExpression(expr->child);
+	bool res = parsePrimaryExpression(expr->child) && parseExpressionPrime(expr->child);
 	if (res) {
 		in = std::move(expr);
 	} else {
 		m_source.setPos(pos);
 	}
 	return res;
+}
+
+bool parseExpressionPrime(std::unique_ptr<BaseAST>&) {
+
 }
 
 bool Parser::parsePrimaryExpression(std::unique_ptr<BaseAST>& in) {

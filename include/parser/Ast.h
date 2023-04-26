@@ -50,6 +50,7 @@ class ContractPartAST: public BaseAST {
 public:
 	// 用智能指针管理对象
 	// StateVariableDeclarationAST / FuncDefAST
+	enum { StateVariableDeclaration, FunctionDefinition } type;
 	std::unique_ptr<BaseAST> child;
 
 	void Dump() const override {
@@ -173,6 +174,17 @@ public:
 
 	void Dump() const override {
 		std::cout << "ExpressionAST { ";
+		child->Dump();
+		std::cout << " }";
+	}
+};
+
+class ExpressionPrimeAST: public BaseAST {
+public:
+	std::unique_ptr<BaseAST> child;
+
+	void Dump() const override {
+		std::cout << "ExpressionPrimeAST { ";
 		child->Dump();
 		std::cout << " }";
 	}

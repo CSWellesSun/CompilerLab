@@ -55,6 +55,7 @@ private:
 	bool parseReturn(std::unique_ptr<BaseAST>&);
 	bool parseExpression(std::unique_ptr<BaseAST>&);
 	bool parsePrimaryExpression(std::unique_ptr<BaseAST>&);
+	bool parseExpressionPrime(std::unique_ptr<BaseAST>&);
 
 	TokenStream& m_source;
 	std::unique_ptr<BaseAST> m_root;
@@ -104,6 +105,31 @@ private:
 //   | Expression '?' Expression ':' Expression
 //   | Expression ('=' | '|=' | '^=' | '&=' | '<<=' | '>>=' | '+=' | '-=' | '*=' | '/=' | '%=') Expression
 //   | PrimaryExpression
+// // change:
+// Expression
+//  = NewExpression ExpressionPrime (暂不实现)
+//  | IndexAccess ExpressionPrime  (暂不实现)
+//  | MemberAccess ExpressionPrime  (暂不实现)
+//  | FunctionCall ExpressionPrime  (暂不实现)
+//  | '(' Expression ')' ExpressionPrime  (暂不实现)
+//  | ('!' | '~' | 'delete' | '++' | '--' | '+' | '-') Expression ExpressionPrime  (暂不实现)
+//  | PrimaryExpression ExpressionPrime
+// ExpressionPrime
+//  = ('++' | '--') ExpressionPrime
+//  | '**' Expression ExpressionPrime
+//  | ('*' | '/' | '%') Expression ExpressionPrime
+//  | ('+' | '-') Expression ExpressionPrime
+//  | ('<<' | '>>') Expression ExpressionPrime
+//  | '&' Expression ExpressionPrime
+//  | '^' Expression ExpressionPrime
+//  | '|' Expression ExpressionPrime
+//  | ('<' | '>' | '<=' | '>=') Expression ExpressionPrime
+//  | ('==' | '!=') Expression ExpressionPrime
+//  | '&&' Expression ExpressionPrime
+//  | '||' Expression ExpressionPrime
+//  | '?' Expression ':' Expression ExpressionPrime
+//  | ('=' | '|=' | '^=' | '&=' | '<<=' | '>>=' | '+=' | '-=' | '*=' | '/=' | '%=') Expression ExpressionPrime
+//  | ε
 
 /// PrimaryExpression = BooleanLiteral
 ///                   | NumberLiteral
