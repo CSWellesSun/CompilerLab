@@ -101,6 +101,7 @@ bool TokenStream::tokenizeNumber() {
 					std::stoll(val, 0, 8);
 				}
 			} else {
+				// Decimal
 				std::stoll(val);
 			}
 		} catch (...) {
@@ -115,6 +116,30 @@ bool TokenStream::tokenizeNumber() {
 
 void TokenStream::skipSpace() {
 	m_striter = std::find_if_not(m_striter, m_source.cend(), [](const char ch) { return isspace(ch); });
+}
+
+bool TokenStream::skipAnnotation() {
+	size_t right_pos;
+	if (*m_striter == '/' && *(m_striter + 1) == '/')
+	{
+		/* single-line annotations */
+		right_pos = m_source.find('\n', m_striter + 2 - m_source.begin());
+	} else if (*m_striter == '/' && *(m_striter + 1) == '*') {
+		/* multi-line annotations */
+		right_pos = m_source.find("*/", m_striter + 2 - m_source.begin());
+	} else {
+		LOG_WARNING("Parse Annotation Fails.");
+		return false;
+	}
+	if (right_pos != std::string::npos)
+	{
+		m_striter = m_source.begin() + right_pos + 2;
+		// LOG_INFO("Skip Annotation.");
+		return true;
+	} else {
+		LOG_WARNING("Parse Annotation Fails.");
+		return false;
+	}
 }
 
 bool TokenStream::tokenizeString() {
