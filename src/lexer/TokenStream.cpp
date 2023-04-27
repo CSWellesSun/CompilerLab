@@ -9,8 +9,7 @@ using namespace minisolc;
 
 void TokenStream::tokenize() {
 	while (m_striter != m_source.end() && !m_error) {
-		const char c = *m_striter;
-		switch (c) {
+		switch (*m_striter) {
 		case '=':
 			++m_striter; // advance
 			m_tokens.push_back({Token::Assign, "="});
@@ -54,7 +53,12 @@ void TokenStream::tokenize() {
 			m_error = !tokenizeString();
 			break;
 		default: {
-			if (isalus(c)) {
+			if (*m_striter == '/' && (*(m_striter + 1) == '*' || *(m_striter + 1) == '/'))
+			{
+				m_error = !skipAnnotation();
+			}
+			if (isalus(*m_striter)) {
+				/* keyword or identifier */
 				tokenizeKeywordIdent();
 			} else if (isdigit(c)) {
 				m_error = !tokenizeNumber();
