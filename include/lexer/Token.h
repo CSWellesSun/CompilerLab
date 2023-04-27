@@ -226,8 +226,33 @@ enum class Token : unsigned int {
 
 };
 
+enum class StateMutability {
+	Nonpayable,
+	Payable,
+	View,
+	Pure,
+};
+
+enum class Visibility { Default, Private, Internal, Public, External };
+
 Token keywordByName(std::string _name);
 char const* tokenToString(Token tok);
+
+StateMutability stateMutabilityByName(std::string _name);
+char const* stateMutabilityToString(StateMutability _state);
+
+Visibility visibilityByName(std::string _name);
+char const* visibilityToString(Visibility _visibility);
+
+constexpr bool isType(Token tok) { return tok >= Token::Int && tok < Token::TypesEnd; }
+constexpr bool isLiteral(Token tok) { return tok >= Token::TrueLiteral && tok <= Token::CommentLiteral; }
+constexpr bool isNumUnit(Token tok) { return tok >= Token::SubWei && tok <= Token::SubYear; }
+constexpr bool isStateMutability(Token tok) {
+	return tok == Token::View || tok == Token::Pure || tok == Token::Payable;
+}
+constexpr bool isVisibility(Token tok) {
+	return tok == Token::Private || tok == Token::Internal || tok == Token::Public || tok == Token::External;
+}
 
 constexpr bool isalus(char c) { return std::isalpha(c) || c == '_'; };
 constexpr bool isalnumus(char c) { return std::isalpha(c) || std::isdigit(c) || c == '_'; };

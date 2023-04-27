@@ -26,12 +26,84 @@ Token minisolc::keywordByName(std::string _name) {
 
 char const* minisolc::tokenToString(Token tok) {
 	switch (tok) {
+	case Token::Number:
+		return "\'Number\'";
+	case Token::StringLiteral:
+		return "\'StringLiteral\'";
+	case Token::UnicodeStringLiteral:
+		return "\'UnicodeStringLiteral\'";
+	case Token::HexStringLiteral:
+		return "\'HexStringLiteral\'";
+	case Token::CommentLiteral:
+		return "\'CommentLiteral\'";
+	case Token::Identifier:
+		return "\'Identifier\'";
+	case Token::Whitespace:
+		return "";
+	default:
+		switch (tok) {
 #define T(name, string, precedence) \
 	case Token::name:               \
 		return string;
-		TOKEN_LIST(T, T)
+			TOKEN_LIST(T, T)
 #undef T
-	default: // Token::NUM_TOKENS:
+		default: // Token::NUM_TOKENS:
+			return "";
+		}
+	}
+}
+
+StateMutability minisolc::stateMutabilityByName(std::string _name) {
+	if (_name == "pure")
+		return StateMutability::Pure;
+	else if (_name == "view")
+		return StateMutability::View;
+	else if (_name == "payable")
+		return StateMutability::Payable;
+	else
+		return StateMutability::Nonpayable;
+}
+
+char const* minisolc::stateMutabilityToString(StateMutability _state) {
+	switch (_state) {
+	case StateMutability::Pure:
+		return "pure";
+	case StateMutability::View:
+		return "view";
+	case StateMutability::Payable:
+		return "payable";
+	default:
+		return "nonpayable";
+	}
+}
+
+/// TODO: 需要加上Erro相关的处理
+Visibility minisolc::visibilityByName(std::string _name) {
+	if (_name == "external")
+		return Visibility::External;
+	else if (_name == "public")
+		return Visibility::Public;
+	else if (_name == "internal")
+		return Visibility::Internal;
+	else if (_name == "private")
+		return Visibility::Private;
+	else
+		return Visibility::Default;
+};
+
+char const* minisolc::visibilityToString(Visibility _visibility) {
+	switch (_visibility) {
+	case Visibility::External:
+		return "external";
+	case Visibility::Public:
+		return "public";
+	case Visibility::Internal:
+		return "internal";
+	case Visibility::Private:
+		return "private";
+	case Visibility::Default:
+		return "default";
+	default:
 		return "";
 	}
 }

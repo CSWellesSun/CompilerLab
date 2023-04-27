@@ -1,9 +1,12 @@
 #include "lexer/TokenStream.h"
+#include "common/defs.h"
 #include "lexer/Token.h"
+
 
 #include <algorithm>
 #include <cctype>
 #include <iostream>
+#include <sstream>
 
 using namespace minisolc;
 
@@ -111,7 +114,7 @@ void TokenStream::tokenize() {
 				} else {
 					m_tokens.push_back({Token::SAR, ">>"});
 					++m_striter;
-				}	
+				}
 			} else {
 				m_tokens.push_back({Token::GreaterThan, ">"});
 			}
@@ -156,7 +159,7 @@ void TokenStream::tokenize() {
 			} else {
 				m_tokens.push_back({Token::BitOr, "|"});
 			}
-			break;	
+			break;
 		case '~':
 			++m_striter;
 			m_tokens.push_back({Token::BitNot, "~"});
@@ -168,7 +171,7 @@ void TokenStream::tokenize() {
 		case ':':
 			++m_striter;
 			m_tokens.push_back({Token::Colon, ":"});
-			break;	
+			break;
 		case '(':
 			++m_striter;
 			m_tokens.push_back({Token::LParen, "("});
@@ -207,6 +210,10 @@ void TokenStream::tokenize() {
 		case '\"':
 			m_error = !tokenizeString();
 			break;
+		case '\n':
+			++m_striter;
+			m_tokens.push_back({Token::Whitespace, "\n"});
+			break;
 		default: {
 			if (isalus(c)) {
 				tokenizeKeywordIdent();
@@ -222,6 +229,7 @@ void TokenStream::tokenize() {
 		}
 		// LOG_INFO("find token: %s", m_tokens.back().val.c_str());
 	}
+	m_tokens.push_back({Token::EOS, ""});
 }
 
 void TokenStream::tokenizeKeywordIdent() {
@@ -272,4 +280,12 @@ bool TokenStream::tokenizeString() {
 	m_tokens.emplace_back(Token::StringLiteral, std::move(val));
 	m_striter = right_quot + 1;
 	return true;
+}
+
+void TokenStream::readLines() {
+	std::string line;
+	std::stringstream ss(m_source);
+	while (std::getline(ss, line)) {
+		m_lines.push_back(std::move(line));
+	}
 }
