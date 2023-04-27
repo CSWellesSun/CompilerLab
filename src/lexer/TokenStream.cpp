@@ -69,11 +69,8 @@ void TokenStream::tokenize() {
 			if (m_striter != m_source.end() && *m_striter == '=') {
 				m_tokens.push_back({Token::AssignDiv, "/="});
 				++m_striter;
-			} else if (m_striter != m_source.end() && *m_striter == '/') {
-				// comment
-				while (m_striter != m_source.end() && *m_striter != '\n') {
-					++m_striter;
-				}
+			} else if (*m_striter == '*' || *m_striter == '/') {
+				m_error = !skipAnnotation();
 			} else {
 				m_tokens.push_back({Token::Div, "/"});
 			}
@@ -214,8 +211,7 @@ void TokenStream::tokenize() {
 			m_tokens.push_back({Token::Whitespace, "\n"});
 			break;
 		default: {
-			if (*m_striter == '/' && (*(m_striter + 1) == '*' || *(m_striter + 1) == '/'))
-			{
+			if (*m_striter == '/' && (*(m_striter + 1) == '*' || *(m_striter + 1) == '/')) {
 				m_error = !skipAnnotation();
 			}
 			if (isalus(*m_striter)) {
@@ -282,8 +278,8 @@ void TokenStream::skipSpace() {
 
 bool TokenStream::skipAnnotation() {
 	size_t right_pos;
-	if (*m_striter == '/' && *(m_striter + 1) == '/')
-	{
+	--m_striter;
+	if (*m_striter == '/' && *(m_striter + 1) == '/') {
 		/* single-line annotations */
 		right_pos = m_source.find('\n', m_striter + 2 - m_source.begin());
 	} else if (*m_striter == '/' && *(m_striter + 1) == '*') {
@@ -293,8 +289,7 @@ bool TokenStream::skipAnnotation() {
 		LOG_WARNING("Parse Annotation Fails.");
 		return false;
 	}
-	if (right_pos != std::string::npos)
-	{
+	if (right_pos != std::string::npos) {
 		m_striter = m_source.begin() + right_pos + 2;
 		// LOG_INFO("Skip Annotation.");
 		return true;
