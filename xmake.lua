@@ -9,6 +9,7 @@ target("compiler")
         add_toolchains("gcc") -- 默认clang，windows环境下使用gcc
     end
     add_cxxflags("-Wall", "-Wextra", "-Werror", "-Wno-unused")
+    set_languages("c++17")
     
 --
 -- If you want to known more usage about xmake, please see https://xmake.io

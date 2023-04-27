@@ -5,56 +5,95 @@
 
 #include "AST.h"
 #include "lexer/TokenStream.h"
-
+#include "common/Error.h"
 
 namespace minisolc {
 
 class Parser {
 public:
 	Parser(TokenStream& source): m_source(source) {}
-	bool parse();
+	void parse();
 	void Dump() const {
 		if (m_root)
 			m_root->Dump();
 	}
 
 private:
+	bool peekCur(Token tok) {
+		if (curTok() == Token::EOS)
+			return false;
+		bool res = curTok() == tok;
+		return res;
+	}
+	bool peekCur(bool (*func)(Token)) {
+		if (curTok() == Token::EOS)
+			return false;
+		bool res = func(curTok());
+		return res;
+	}
 	bool match(Token tok) {
-		bool res = m_source.curTok() == tok;
-		m_source.advance();
+		if (curTok() == Token::EOS)
+			return false;
+		bool res = curTok() == tok;
+		if (res)
+			advance();
 		return res;
 	}
+	bool match(bool (*func)(Token)) {
+		if (curTok() == Token::EOS)
+			return false;
+		bool res = func(curTok());
+		if (res)
+			advance();
+		return res;
+	};
 	bool matchGet(Token tok, std::string& val) {
-		bool res = m_source.curTok() == tok;
-		val = m_source.curVal();
-		m_source.advance();
-		return res;
+		val = curVal();
+		return match(tok);
 	}
-	bool match(std::string val) {
-		bool res = m_source.curVal() == val;
-		m_source.advance();
-		return res;
+	bool matchGet(bool (*func)(Token), std::string& val) {
+		val = curVal();
+		return match(func);
 	}
-	bool matchGet(std::string val, std::string& out) {
-		bool res = m_source.curVal() == val;
-		out = m_source.curVal();
-		m_source.advance();
-		return res;
+	
+	bool expect(Token tok) {
+		if (match(tok)) return true;
+		throw UnexpectedToken(curLine(), curTok(), tok);
+		return false;
+	}
+	bool expect(bool (*func)(Token)) {
+		if (match(func)) return true;
+		throw UnexpectedToken(curLine(), curTok(), func);
+		return false;
+	}
+	bool expectGet(Token tok, std::string& val) {
+		if (matchGet(tok, val)) return true;
+		throw UnexpectedToken(curLine(), curTok(), tok);
+		return false;
+	}
+	bool expectGet(bool (*func)(Token), std::string& val) {
+		if (matchGet(func, val)) return true;
+		throw UnexpectedToken(curLine(), curTok(), func);
+		return false;
 	}
 
-	bool parseSourceUnit(std::unique_ptr<BaseAST>&);
-	bool parseContractDefinition(std::unique_ptr<BaseAST>&);
-	bool parseContractPart(std::unique_ptr<BaseAST>&);
-	bool parseStateVariableDeclaration(std::unique_ptr<BaseAST>&);
-	bool parseFunctionDefinition(std::unique_ptr<BaseAST>&);
-	bool parseParameterList(std::unique_ptr<BaseAST>&);
-	bool parseTypeName(std::unique_ptr<BaseAST>&);
-	bool parseElementaryTypeName(std::unique_ptr<BaseAST>&);
-	bool parseBlock(std::unique_ptr<BaseAST>&);
-	bool parseStatement(std::unique_ptr<BaseAST>&);
-	bool parseReturn(std::unique_ptr<BaseAST>&);
-	bool parseExpression(std::unique_ptr<BaseAST>&);
-	bool parsePrimaryExpression(std::unique_ptr<BaseAST>&);
+	Token curTok() const { return m_source.curTok(); }
+	std::string curVal() const { return m_source.curVal(); }
+	std::string curLine() const { return m_source.curLine(); }
+	void advance() { m_source.advance(); }
+	bool eof() const { return m_source.curTok() == Token::EOS; }
+
+	std::unique_ptr<SourceUnit> parseSourceUnit();
+	std::unique_ptr<ContractDefinition> parseContractDefinition();
+	std::unique_ptr<VariableDeclaration> parseVariableDeclaration(bool end);
+	std::unique_ptr<FunctionDefinition> parseFunctionDefinition();
+	std::unique_ptr<ParameterList> parseParameterList();
+	std::unique_ptr<TypeName> parseTypeName();
+	std::unique_ptr<Block> parseBlock();
+	std::unique_ptr<Statement> parseStatement();
+	std::unique_ptr<Return> parseReturn();
+	std::unique_ptr<Expression> parseExpression();
+	std::unique_ptr<PrimaryExpression> parsePrimaryExpression();
 
 	TokenStream& m_source;
 	std::unique_ptr<BaseAST> m_root;
@@ -80,7 +119,31 @@ private:
 /// Block = '{' Statement* '}'
 /// Statement = Return ';'
 /// Return = 'return' Expression?
-/// Expression = PrimaryExpression
+
+// // Precedence by order (see github.com/ethereum/solidity/pull/732)
+// Expression
+//   = Expression ('++' | '--')
+//   | NewExpression
+//   | IndexAccess
+//   | MemberAccess
+//   | FunctionCall
+//   | '(' Expression ')'
+//   | ('!' | '~' | 'delete' | '++' | '--' | '+' | '-') Expression
+//   | Expression '**' Expression
+//   | Expression ('*' | '/' | '%') Expression
+//   | Expression ('+' | '-') Expression
+//   | Expression ('<<' | '>>') Expression
+//   | Expression '&' Expression
+//   | Expression '^' Expression
+//   | Expression '|' Expression
+//   | Expression ('<' | '>' | '<=' | '>=') Expression
+//   | Expression ('==' | '!=') Expression
+//   | Expression '&&' Expression
+//   | Expression '||' Expression
+//   | Expression '?' Expression ':' Expression
+//   | Expression ('=' | '|=' | '^=' | '&=' | '<<=' | '>>=' | '+=' | '-=' | '*=' | '/=' | '%=') Expression
+//   | PrimaryExpression
+
 /// PrimaryExpression = BooleanLiteral
 ///                   | NumberLiteral
 ///                   | StringLiteral

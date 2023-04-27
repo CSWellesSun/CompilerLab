@@ -1,10 +1,14 @@
 #pragma once
 
+#include "lexer/Token.h"
 #include <iostream>
 #include <memory>
-// #include <stdlib.h>
 #include <string>
+#include <type_traits>
 #include <vector>
+
+
+namespace minisolc {
 
 // 所有 AST 的基类
 class BaseAST {
@@ -14,124 +18,127 @@ public:
 	virtual void Dump() const {};
 };
 
-// SourceUnit 是 BaseAST
-class SourceUnitAST: public BaseAST {
+class Declaration: public BaseAST {
 public:
-	// 用智能指针管理对象
-	std::unique_ptr<BaseAST> contract_def;
+	Declaration(std::string name, std::unique_ptr<BaseAST> type = nullptr): m_name(name), m_type(std::move(type)) {}
 
-	void Dump() const override {
-		std::cout << "SourceUnitAST { ";
-		contract_def->Dump();
-		std::cout << " }";
-	}
+protected:
+	std::string m_name;
+	std::unique_ptr<BaseAST> m_type;
 };
 
-class ContractDefinitionAST: public BaseAST {
+// SourceUnit 是 BaseAST
+class SourceUnit: public BaseAST {
+public:
+	SourceUnit(std::unique_ptr<BaseAST> subnode): m_subnode(std::move(subnode)) {}
+	void Dump() const override {
+		std::cout << "SourceUnitAST { ";
+		if (m_subnode)
+			m_subnode->Dump();
+		std::cout << " }";
+	}
+
+private:
+	// 用智能指针管理对象
+	std::unique_ptr<BaseAST> m_subnode;
+};
+
+class ContractDefinition: public Declaration {
 public:
 	// 用智能指针管理对象
-	std::string ident;
-	std::vector<std::unique_ptr<BaseAST>> contract_parts;
-
+	ContractDefinition(std::string name, std::vector<std::unique_ptr<BaseAST>> subnodes)
+		: Declaration(name), m_subnodes(std::move(subnodes)) {}
 	void Dump() const override {
 		std::cout << "ContractDefinitionAST { ";
-		std::cout << ident << ", ";
-		for (const auto& contract_part: contract_parts) {
-			contract_part->Dump();
+		std::cout << m_name << ", ";
+		for (auto& subnode: m_subnodes) {
+			subnode->Dump();
 			std::cout << ", ";
 		}
 		std::cout << " }";
 	}
+
+private:
+	std::vector<std::unique_ptr<BaseAST>> m_subnodes;
 };
 
-class ContractPartAST: public BaseAST {
+class VariableDeclaration: public Declaration {
 public:
-	// 用智能指针管理对象
-	// StateVariableDeclarationAST / FuncDefAST
-	std::unique_ptr<BaseAST> child;
-
-	void Dump() const override {
-		std::cout << "ContractPartAST { ";
-		child->Dump();
-		std::cout << " }";
-	}
-};
-
-class StateVariableDeclarationAST: public BaseAST {
-public:
-	std::unique_ptr<BaseAST> type;
-	std::string ident;
-	std::unique_ptr<BaseAST> expr; // optional
-
+	VariableDeclaration(std::string name, std::unique_ptr<BaseAST> type, std::unique_ptr<BaseAST> expr)
+		: Declaration(name, std::move(type)), m_expr(std::move(expr)) {}
 	void Dump() const override {
 		std::cout << "StateVariableDeclarationAST { ";
-		type->Dump();
-		std::cout << ", " << ident << ", ";
-		if (expr)
-			expr->Dump();
+		m_type->Dump();
+		std::cout << ", " << m_name << ", ";
+		if (m_expr)
+			m_expr->Dump();
 		std::cout << " }";
 	}
+
+private:
+	std::unique_ptr<BaseAST> m_expr; // optional
 };
 
 // FuncDef 也是 BaseAST
-class FunctionDefinitionAST: public BaseAST {
+class FunctionDefinition: public Declaration {
 public:
-	std::string ident;
-	std::unique_ptr<BaseAST> param_list;
-	std::vector<std::string> state_muts;
-	std::unique_ptr<BaseAST> return_type; // optional
-	std::unique_ptr<BaseAST> block;
+	FunctionDefinition(
+		std::string name,
+		std::unique_ptr<BaseAST> param_list,
+		StateMutability state_mut,
+		Visibility visibility,
+		std::unique_ptr<BaseAST> return_type,
+		std::unique_ptr<BaseAST> block)
+		: Declaration(name, std::move(return_type)), m_param(std::move(param_list)), m_state(state_mut),
+		  m_visibility(visibility), m_block(std::move(block)) {}
 
 	void Dump() const override {
 		std::cout << "FuncDefAST { ";
-		std::cout << ident << ", ";
-		param_list->Dump();
-		for (auto& state_mut: state_muts) {
-			std::cout << state_mut << ", ";
-		}
-		if (return_type)
-			return_type->Dump();
-		block->Dump();
+		std::cout << m_name << ", ";
+		m_param->Dump();
+		std::cout << stateMutabilityToString(m_state) << ", ";
+		if (m_type)
+			m_type->Dump();
+		m_block->Dump();
 		std::cout << " }";
 	}
+
+private:
+	std::unique_ptr<BaseAST> m_param;
+	StateMutability m_state;
+	Visibility m_visibility;
+	std::unique_ptr<BaseAST> m_block;
 };
 
-class ParameterListAST: public BaseAST {
+class ParameterList: public BaseAST {
 public:
-	std::vector<std::pair<std::unique_ptr<BaseAST>, std::string>> params; // type, ident
-
+	ParameterList(std::vector<std::unique_ptr<BaseAST>> params): params(std::move(params)) {}
 	void Dump() const override {
 		std::cout << "ParameterListAST { ";
 		for (auto& param: params) {
-			param.first->Dump();
-			std::cout << ", " << param.second << ", ";
+			param->Dump();
 		}
 		std::cout << " }";
 	}
+
+private:
+	std::vector<std::unique_ptr<BaseAST>> params; // type, ident
 };
 
-class TypeNameAST: public BaseAST {
-public:
-	std::unique_ptr<BaseAST> elem_type;
+class TypeName: public BaseAST {};
 
-	void Dump() const override {
-		std::cout << "TypeNameAST { ";
-		elem_type->Dump();
-		std::cout << " }";
-	}
+class ElementaryTypeName: public TypeName {
+public:
+	ElementaryTypeName(Token type): type(type) {}
+	void Dump() const override { std::cout << "ElementaryTypeNameAST { " << tokenToString(type) << " }"; }
+
+private:
+	Token type;
 };
 
-class ElementaryTypeNameAST: public BaseAST {
+class Block: public BaseAST {
 public:
-	std::string type;
-
-	void Dump() const override { std::cout << "ElementaryTypeNameAST { " << type << " }"; }
-};
-
-class BlockAST: public BaseAST {
-public:
-	std::vector<std::unique_ptr<BaseAST>> stmts;
-
+	Block(std::vector<std::unique_ptr<BaseAST>> stmts): stmts(std::move(stmts)) {}
 	void Dump() const override {
 		std::cout << "BlockAST { ";
 		for (auto& stmt: stmts) {
@@ -140,45 +147,73 @@ public:
 		}
 		std::cout << " }";
 	}
+
+private:
+	std::vector<std::unique_ptr<BaseAST>> stmts;
 };
 
-class StatementAST: public BaseAST {
+class Statement: public BaseAST {
 public:
-	std::unique_ptr<BaseAST> child;
-
+	Statement(std::unique_ptr<BaseAST> child): child(std::move(child)) {}
 	void Dump() const override {
 		std::cout << "StatementAST { ";
 		child->Dump();
 		std::cout << " }";
 	}
+
+private:
+	std::unique_ptr<BaseAST> child;
 };
 
-class ReturnAST: public BaseAST {
+class Return: public BaseAST {
 public:
-	std::unique_ptr<BaseAST> expr; // optional
-
+	Return(std::unique_ptr<BaseAST> expr): expr(std::move(expr)) {}
 	void Dump() const override {
 		std::cout << "ReturnAST { ";
 		if (expr)
 			expr->Dump();
 		std::cout << " }";
 	}
+
+private:
+	std::unique_ptr<BaseAST> expr; // optional
 };
 
-class ExpressionAST: public BaseAST {
+class Expression: public BaseAST {};
+
+class PrimaryExpression: public Expression {
 public:
-	std::unique_ptr<BaseAST> child;
+	PrimaryExpression(std::string value): m_value(value) {}
 
-	void Dump() const override {
-		std::cout << "ExpressionAST { ";
-		child->Dump();
-		std::cout << " }";
-	}
+protected:
+	std::string m_value;
 };
 
-class PrimaryExpressionAST: public BaseAST {
+class Identifier: public PrimaryExpression {
 public:
-	std::string child;
-
-	void Dump() const override { std::cout << "PrimaryExpressionAST { " << child << " }"; }
+	Identifier(std::string value): PrimaryExpression(value) {}
+	void Dump() const override { std::cout << "IdentifierAST { " << m_value << " }"; }
 };
+
+class BooleanLiteral: public PrimaryExpression {
+public:
+	BooleanLiteral(std::string value): PrimaryExpression(value) {}
+	void Dump() const override { std::cout << "BooleanLiteralAST { " << m_value << " }"; }
+};
+
+class StringLiteral: public PrimaryExpression {
+public:
+	StringLiteral(std::string value): PrimaryExpression(value) {}
+	void Dump() const override { std::cout << "StringLiteralAST { " << m_value << " }"; }
+};
+
+class NumberLiteral: public PrimaryExpression {
+public:
+	NumberLiteral(std::string value, std::string unit = ""): PrimaryExpression(value), m_unit(unit) {}
+	void Dump() const override { std::cout << "NumberLiteralAST { " << m_value << " }"; }
+
+private:
+	std::string m_unit;
+};
+
+}

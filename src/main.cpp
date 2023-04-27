@@ -9,7 +9,7 @@ int main(int argc, const char* argv[]) {
 	auto input = argv[1];
 	TokenStream tokenStream(input);
 	tokenStream.dump();
-	cout << "\n\n";
+	cout << '\n';
 	Parser parser(tokenStream);
 	parser.parse();
 	parser.Dump();
