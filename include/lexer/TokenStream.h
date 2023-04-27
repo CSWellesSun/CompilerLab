@@ -26,8 +26,6 @@ public:
 		m_striter = m_source.cbegin();
 		tokenize();
 		mtokeniter = m_tokens.cbegin();
-		if(!m_error)
-			LOG_INFO("tokenize succeeds.");
 	}
 
 	Token curTok() const {
@@ -81,6 +79,7 @@ private:
 	bool tokenizeNumber();
 	bool tokenizeString();
 	void skipSpace();
+	bool skipAnnotation();
 
 	struct TokenInfo {
 		Token token;

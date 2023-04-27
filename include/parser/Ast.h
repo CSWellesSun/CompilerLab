@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <memory>
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <string>
 #include <vector>
 
@@ -36,7 +36,7 @@ public:
 	void Dump() const override {
 		std::cout << "ContractDefinitionAST { ";
 		std::cout << ident << ", ";
-		for (auto& contract_part: contract_parts) {
+		for (const auto& contract_part: contract_parts) {
 			contract_part->Dump();
 			std::cout << ", ";
 		}
