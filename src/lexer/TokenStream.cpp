@@ -60,11 +60,14 @@ void TokenStream::tokenize() {
 			if (isalus(*m_striter)) {
 				/* keyword or identifier */
 				tokenizeKeywordIdent();
-			} else if (isdigit(c)) {
+			} else if (isdigit(*m_striter)) {
+				/* number */
 				m_error = !tokenizeNumber();
-			} else if (isspace(c)) {
+			} else if (isspace(*m_striter)) {
+				/* spaces */
 				skipSpace();
 			} else {
+				LOG_WARNING("Invalid Character.");
 				m_error = true;
 			}
 			break;
@@ -72,6 +75,8 @@ void TokenStream::tokenize() {
 		}
 		// LOG_INFO("find token: %s", m_tokens.back().val.c_str());
 	}
+	if (!m_error)
+		LOG_INFO("Tokenize Succeeds.");
 }
 
 void TokenStream::tokenizeKeywordIdent() {

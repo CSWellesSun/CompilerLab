@@ -1,8 +1,8 @@
 contract Test {
 
     uint256 a;
-    uint128 b = 0xDEADBEEF;
-    string c = "hello world";
+    uint128 b = 0xDEADBEEF; /* Annotation Test. */
+    string c = "hello world"; // Annotation Test.
     bool d = true;
 
     function main(int x, uint y) public pure returns (uint) {

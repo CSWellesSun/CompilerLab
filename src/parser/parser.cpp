@@ -9,9 +9,16 @@
 using namespace minisolc;
 
 bool Parser::parse() {
+	bool res;
 	if (m_source.error())
-		return false;
-	return parseSourceUnit(m_root);
+		res = false;
+	else 
+		res = parseSourceUnit(m_root);
+	if (res) 
+		LOG_INFO("Parse Succeeds.");
+	else
+		LOG_WARNING("Parse Fails.");
+	return res;
 }
 
 bool Parser::parseSourceUnit(std::unique_ptr<BaseAST>& in) {
