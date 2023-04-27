@@ -12,8 +12,7 @@ using namespace minisolc;
 
 void TokenStream::tokenize() {
 	while (m_striter != m_source.end() && !m_error) {
-		const char c = *m_striter;
-		switch (c) {
+		switch (*m_striter) {
 		case '=':
 			++m_striter; // advance
 			if (m_striter != m_source.end() && *m_striter == '=') {
@@ -215,13 +214,21 @@ void TokenStream::tokenize() {
 			m_tokens.push_back({Token::Whitespace, "\n"});
 			break;
 		default: {
-			if (isalus(c)) {
+			if (*m_striter == '/' && (*(m_striter + 1) == '*' || *(m_striter + 1) == '/'))
+			{
+				m_error = !skipAnnotation();
+			}
+			if (isalus(*m_striter)) {
+				/* keyword or identifier */
 				tokenizeKeywordIdent();
-			} else if (isdigit(c)) {
+			} else if (isdigit(*m_striter)) {
+				/* number */
 				m_error = !tokenizeNumber();
-			} else if (isspace(c)) {
+			} else if (isspace(*m_striter)) {
+				/* spaces */
 				skipSpace();
 			} else {
+				LOG_WARNING("Invalid Character.");
 				m_error = true;
 			}
 			break;
@@ -230,6 +237,8 @@ void TokenStream::tokenize() {
 		// LOG_INFO("find token: %s", m_tokens.back().val.c_str());
 	}
 	m_tokens.push_back({Token::EOS, ""});
+	if (!m_error)
+		LOG_INFO("Tokenize Succeeds.");
 }
 
 void TokenStream::tokenizeKeywordIdent() {
@@ -254,6 +263,7 @@ bool TokenStream::tokenizeNumber() {
 					std::stoll(val, 0, 8);
 				}
 			} else {
+				// Decimal
 				std::stoll(val);
 			}
 		} catch (...) {
@@ -268,6 +278,30 @@ bool TokenStream::tokenizeNumber() {
 
 void TokenStream::skipSpace() {
 	m_striter = std::find_if_not(m_striter, m_source.cend(), [](const char ch) { return isspace(ch); });
+}
+
+bool TokenStream::skipAnnotation() {
+	size_t right_pos;
+	if (*m_striter == '/' && *(m_striter + 1) == '/')
+	{
+		/* single-line annotations */
+		right_pos = m_source.find('\n', m_striter + 2 - m_source.begin());
+	} else if (*m_striter == '/' && *(m_striter + 1) == '*') {
+		/* multi-line annotations */
+		right_pos = m_source.find("*/", m_striter + 2 - m_source.begin());
+	} else {
+		LOG_WARNING("Parse Annotation Fails.");
+		return false;
+	}
+	if (right_pos != std::string::npos)
+	{
+		m_striter = m_source.begin() + right_pos + 2;
+		// LOG_INFO("Skip Annotation.");
+		return true;
+	} else {
+		LOG_WARNING("Parse Annotation Fails.");
+		return false;
+	}
 }
 
 bool TokenStream::tokenizeString() {

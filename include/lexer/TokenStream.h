@@ -32,8 +32,6 @@ public:
 		tokenize();
 		mtokeniter = m_tokens.cbegin();
 		eatEnter();
-		if (!m_error)
-			LOG_INFO("tokenize succeeds.");
 	}
 
 	Token curTok() const {
@@ -100,6 +98,7 @@ private:
 			++m_curline;
 		}
 	}
+	bool skipAnnotation();
 
 	struct TokenInfo {
 		Token token;
