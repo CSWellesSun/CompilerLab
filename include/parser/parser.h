@@ -58,28 +58,28 @@ private:
 	
 	bool expect(Token tok) {
 		if (match(tok)) return true;
-		throw UnexpectedToken(curLine(), curTok(), tok);
+		throw UnexpectedToken(curTokInfo(), tok);
 		return false;
 	}
 	bool expect(bool (*func)(Token)) {
 		if (match(func)) return true;
-		throw UnexpectedToken(curLine(), curTok(), func);
+		throw UnexpectedToken(curTokInfo(), func);
 		return false;
 	}
 	bool expectGet(Token tok, std::string& val) {
 		if (matchGet(tok, val)) return true;
-		throw UnexpectedToken(curLine(), curTok(), tok);
+		throw UnexpectedToken(curTokInfo(), tok);
 		return false;
 	}
 	bool expectGet(bool (*func)(Token), std::string& val) {
 		if (matchGet(func, val)) return true;
-		throw UnexpectedToken(curLine(), curTok(), func);
+		throw UnexpectedToken(curTokInfo(), func);
 		return false;
 	}
 
 	Token curTok() const { return m_source.curTok(); }
 	std::string curVal() const { return m_source.curVal(); }
-	std::string curLine() const { return m_source.curLine(); }
+	TokenInfo curTokInfo() const { return m_source.curTokInfo(); }
 	void advance() { m_source.advance(); }
 	bool eof() const { return m_source.curTok() == Token::EOS; }
 
