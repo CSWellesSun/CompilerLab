@@ -12,7 +12,7 @@ namespace minisolc {
 class Error: public std::exception {
 public:
 	Error(const std::string& msg): m_msg(msg) {}
-	virtual const char* what() const throw() { return m_msg.c_str(); }
+	virtual const char* what() const noexcept { return m_msg.c_str(); }
 	virtual void print() const = 0;
 
 private:
@@ -37,21 +37,21 @@ public:
     }
 	UnexpectedToken(const std::string& line, Token tok, bool (*func)(Token))
 		: ParseError(line, tok) {
-        for (int i = 0; i < (int)Token::NUM_TOKENS; i++) {
-            if (func((Token)i)) {
-                m_expectTok.push_back((Token)i);
+        for (int i = 0; i < static_cast<int>(Token::NUM_TOKENS); ++i) {
+            if (func(static_cast<Token>(i))) {
+                m_expectTok.push_back(static_cast<Token>(i));
             }
         }
     }
 
 	void print() const override {
-		std::cout << m_line << std::endl;
-		std::cout << "Expect token: ";
+		std::cout << m_line << '\n'
+				  << "Expect token: ";
         for (auto tok : m_expectTok) {
-            std::cout << tokenToString(tok) << " ";
-        } 
-        std::cout << std::endl;
-		std::cout << "But got: " << tokenToString(m_tok) << std::endl;
+            std::cout << tokenToString(tok) << ' ';
+        }
+		std::cout << '\n' 
+		 		  << "But got: " << tokenToString(m_tok) << '\n';
 	}
 
 private:
@@ -62,9 +62,9 @@ class ContractDefinitionParseError: public ParseError {
 public:
 	ContractDefinitionParseError(const std::string& line, Token tok): ParseError(line, tok) {}
 	void print() const override {
-		std::cout << m_line << std::endl;
-		std::cout << "Expect function definition or variable declaration!" << std::endl;
-		std::cout << "But got: " << tokenToString(m_tok) << std::endl;
+		std::cout << m_line << '\n'
+				  << "Expect function definition or variable declaration!" << '\n'
+				  << "But got: " << tokenToString(m_tok) << '\n';
 	}
 };
 

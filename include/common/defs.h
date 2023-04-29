@@ -31,18 +31,18 @@
 #define GRAY "\033[30m"	  /* Light gray */
 
 
-#define LOG_ERROR(fmt, ...)                  \
-	do {                                    \
+#define LOG_ERROR(fmt, ...)                          \
+	do {                                             \
 		printf(TIME_STR "[" RED "ERROR" RESET "] "); \
-		PRINT_LOCATE;                       \
-		printf(fmt "\n", ##__VA_ARGS__);            \
-		exit(1);                            \
+		PRINT_LOCATE;                                \
+		printf(fmt "\n", ##__VA_ARGS__);             \
+		exit(1);                                     \
 	} while (0)
-#define LOG_WARNING(fmt, ...)                     \
-	do {                                         \
+#define LOG_WARNING(fmt, ...)                             \
+	do {                                                  \
 		printf(TIME_STR "[" YELLOW "WARNING" RESET "] "); \
-		PRINT_LOCATE;                            \
-		printf(fmt "\n", ##__VA_ARGS__);                 \
+		PRINT_LOCATE;                                     \
+		printf(fmt "\n", ##__VA_ARGS__);                  \
 	} while (0)
 #define LOG_INFO(fmt, ...) printf(TIME_STR "[" GREEN "INFO" RESET "] " fmt "\n", ##__VA_ARGS__)
 #define ASSERT_EXIT(expr, message)                    \

@@ -28,10 +28,13 @@ std::unique_ptr<ContractDefinition> Parser::parseContractDefinition() {
 		expect(Token::Contract);
 		expectGet(Token::Identifier, name);
 		expect(Token::LBrace);
+		/* contract identifier { ... } */
 		while (!match(Token::RBrace)) {
 			if (peekCur(Token::Function)) {
+				/* Function definition. */
 				subnodes.push_back(parseFunctionDefinition());
 			} else if (peekCur(isType)) {
+				/* Variable definition. */
 				subnodes.push_back(parseVariableDeclaration(true));
 			} else {
 				LOG_WARNING("Expect function definition or variable declaration!");
@@ -78,6 +81,14 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition() {
 	StateMutability stateMutability{StateMutability::Nonpayable};
 	Visibility visibility{Visibility::Default};
 
+	/* function identifier( parameter-list )
+	   ┌─ visibility
+	 ──┤
+	   └─ state-mutability
+	   returns (type)
+	   block
+	   ;
+	*/
 	try {
 		expect(Token::Function);
 		expectGet(Token::Identifier, name);
@@ -98,7 +109,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition() {
 			returnType = parseTypeName();
 			expect(Token::RParen);
 		}
-		expect(Token::LBrace);
+		
 		block = parseBlock();
 
 		return std::make_unique<FunctionDefinition>(
@@ -112,7 +123,7 @@ std::unique_ptr<FunctionDefinition> Parser::parseFunctionDefinition() {
 
 std::unique_ptr<ParameterList> Parser::parseParameterList() {
 	std::vector<std::unique_ptr<BaseAST>> params;
-
+	/* (Type variable, Type variable, ..., Type variable) */
 	try {
 		expect(Token::LParen);
 		if (match(Token::RParen)) {
@@ -148,8 +159,9 @@ std::unique_ptr<TypeName> Parser::parseTypeName() {
 
 std::unique_ptr<Block> Parser::parseBlock() {
 	std::vector<std::unique_ptr<BaseAST>> stmts;
+	/* {...} */
 	try {
-		// expect(Token::LBrace);
+		expect(Token::LBrace);
 		while (!match(Token::RBrace)) {
 			std::unique_ptr<BaseAST> stmt;
 			stmt = parseStatement();
@@ -210,7 +222,7 @@ std::unique_ptr<PrimaryExpression> Parser::parsePrimaryExpression() {
 			break;
 		}
 	} catch (ParseError& e) {
-		std::cout << "helloError" << std::endl;
+		std::cout << "helloError" << '\n';
 		e.print();
 	}
 	return nullptr;
