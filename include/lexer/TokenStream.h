@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Token.h"
-#include "common/common.h"
-#include "common/defs.h"
+#include "common/Defs.h"
+#include "preprocess/Preprocess.h"
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -12,21 +12,16 @@ namespace minisolc {
 
 class TokenStream {
 public:
-	TokenStream(const std::string& filename) {
-		std::ifstream file(filename);
-		if (file.is_open()) {
-			/* load input file stream into string */
-			m_source = std::string((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
-			file.close();
+	TokenStream(Preprocess& preprocess): m_preprocess(preprocess) {
+		if (!preprocess.getFiles().empty()) {
+			m_filename = preprocess.getFiles()[0].m_filename;
+			m_source = preprocess.getFiles()[0].m_charstream;
 		} else {
-			LOG_WARNING("Program does not open file %s", filename.c_str());
+			m_filename = "";
 			m_source = "";
-			return;
 		}
-
 		readLines();
 		m_curline = m_lines.cbegin();
-
 		m_striter = m_source.cbegin();
 		m_line_start = m_source.cbegin();
 		tokenize();
@@ -97,16 +92,21 @@ private:
 	void readLines();
 	bool skipAnnotation();
 	void addToken(Token tok, std::string val) {
-		m_tokens.push_back({
-			tok,
-			val,
-			precedence(tok),
-			*m_curline,
-			(size_t)(m_curline - m_lines.cbegin() + 1),
-			(size_t)(m_striter - m_line_start),
-			m_striter - m_line_start + val.length()});
+		m_tokens.push_back(
+			{tok,
+			 val,
+			 m_filename,
+			 *m_curline,
+			 (size_t) (m_curline - m_lines.cbegin() + 1),
+			 (size_t) (m_striter - m_line_start),
+			 m_striter - m_line_start + val.length()});
 	};
 
+	Preprocess& m_preprocess;
+	bool m_error = false;
+
+	/// 当前正在处理的文件状态
+	std::string m_filename;
 	std::string m_source;
 	std::vector<std::shared_ptr<std::string>> m_lines;
 	std::vector<std::shared_ptr<std::string>>::const_iterator m_curline;
@@ -116,8 +116,6 @@ private:
 
 	std::vector<TokenInfo> m_tokens;
 	std::vector<TokenInfo>::const_iterator mtokeniter;
-
-	bool m_error = false;
 };
 
 }

@@ -1,5 +1,6 @@
 #include "parser/Parser.h"
-#include "common/defs.h"
+#include "lexer/Token.h" // for precedence()
+#include "common/Defs.h"
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -205,7 +206,8 @@ std::shared_ptr<Expression> Parser::parseExpression(std::shared_ptr<Expression> 
 	
 	if (isAssignmentOp(tok))
 	{
-		match(isAssignmentOp); // advance()
+		// Assignment.
+		advance(); // eat assignment operator
 		std::shared_ptr<Expression> rhs = parseExpression();
 		return std::make_shared<Assignment>(partiallyParsedExpression, value, rhs);
 	}
@@ -216,12 +218,16 @@ std::shared_ptr<Expression> Parser::parsePrimaryExpression() {
 	Token tok = curTok();
 	std::string value;
 	if (isLiteral(tok)) {
+		// literals
 		return parseLiterial();
 	} else if (tok == Token::Identifier){
-		// Identifier
-		matchGet([](Token tok) { return tok == Token::Identifier; }, value);
+		// identifier
+		value = curVal();
+		advance(); // eat;
 		return std::make_shared<Identifier>(value);
 	} else if (tok == Token::LParen) {
+		// handle parentheses in expressions
+		// e.g. a = (b + c) * d
 		match(Token::LParen);
 		try {
 			std::shared_ptr<Expression> expr = parseExpression();
@@ -231,24 +237,26 @@ std::shared_ptr<Expression> Parser::parsePrimaryExpression() {
 			LOG_WARNING("Parse fails.");
 			e.print();
 		}
-	} 
+	} else {
+		LOG_WARNING("Invalid character in parse primary expression.");
+	}
 	return nullptr;
 }
 
-std::shared_ptr<Expression>
-Parser::parseBinaryExpression(
+std::shared_ptr<Expression> Parser::parseBinaryExpression(
 	int minPrecedence, 
 	std::shared_ptr<Expression> const& partiallyParsedExpression
 ) {
 	std::shared_ptr<Expression> expr = parseUnaryExpression(partiallyParsedExpression);
 	Token tok;
 	std::string value;
-	for (int precedence = curTokInfo().m_precedence; precedence >= minPrecedence; --precedence) {
-		while (curTokInfo().m_precedence == precedence) {
+	for (int curPrecedence = precedence(curTok()); curPrecedence >= minPrecedence; --curPrecedence) {
+		while (precedence(curTok()) == curPrecedence) {
 			tok = curTok();
 			try {
+				// parse binary operation
 				expectGet([](Token tok) { return isBinaryOp(tok) || isCompareOp(tok); }, value);
-				std::shared_ptr<Expression> rhs = parseBinaryExpression(precedence + 1);
+				std::shared_ptr<Expression> rhs = parseBinaryExpression(curPrecedence + 1);
 				expr = std::make_shared<BinaryOp>(expr, value, rhs);
 			} catch (ParseError& e) {
 				LOG_WARNING("Parse fails.");
@@ -271,7 +279,7 @@ std::shared_ptr<Expression> Parser::parseUnaryExpression(
 		std::shared_ptr<Expression> subexpr = parseUnaryExpression();
 		return std::make_shared<UnaryOp>(value, subexpr, true);
 	} else {
-		std::shared_ptr<Expression> subexpr = parseLeftHandSideExpression(std::move(partiallyParsedExpression));
+		std::shared_ptr<Expression> subexpr = parseLeftHandSideExpression(partiallyParsedExpression);
 		tok = curTok();
 		auto isCount = [](Token tok) -> bool { return tok == Token::Inc || tok == Token::Dec; };
 		if (!isCount(tok))
@@ -305,29 +313,19 @@ std::shared_ptr<Expression> Parser::parseLeftHandSideExpression(
 		{
 		case Token::LBrack:
 		{
-			// index range
+			/* Index range. */
 			LOG_WARNING("Not implemented.");
-			// match(Token::LBrack); // advance()
-			// std::shared_ptr<Expression> index, endIndex;
-			// if (tok != Token::RBrack && tok != Token::Colon)
-			// 	index = parseExpression();
-			// if (tok == Token::Colon)
-			// {
-			// 	...
-			// } else {
-			// 	expect(Token::RBrack);
-			// 	...
-			// }
 			break;
 		}
 		case Token::Period: /* . */
 		{
+			/* Access structure members. */
 			LOG_WARNING("Not implemented.");
 			break;
 		}
 		case Token::LParen:
 		{
-			// function call
+			/* Function call. */
 			LOG_WARNING("Not implemented.");
 			break;
 		}
@@ -352,13 +350,16 @@ std::shared_ptr<Expression> Parser::parseLiterial() {
 		case Token::TrueLiteral:
 			[[fallthrough]];
 		case Token::FalseLiteral:
+			/* Boolean literal. */
 			return std::make_shared<BooleanLiteral>(value);
 		case Token::Number:
+			/* Number literal. */
 			if (matchGet(isNumUnit, unit)) {
 				return std::make_shared<NumberLiteral>(value, unit);
 			}
 			return std::make_shared<NumberLiteral>(value);
 		case Token::StringLiteral:
+			/* String literal. */
 			return std::make_shared<StringLiteral>(value);
 		default:
 			LOG_ERROR("Expect literal!");

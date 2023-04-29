@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cctype>
+#include <memory>
 #include <string>
+
 
 namespace minisolc {
 
@@ -274,5 +276,41 @@ constexpr int precedence(Token tok)
 	};
 	return precs[static_cast<size_t>(tok)];
 }
+
+struct Location {
+	std::string m_filename;
+	std::shared_ptr<std::string> m_line;
+	size_t m_line_idx;
+	size_t m_start;
+	size_t m_end;
+
+	Location(std::string filename, std::shared_ptr<std::string> line, size_t lineIdx, size_t start, size_t end)
+		: m_filename(filename), m_line(line), m_line_idx(lineIdx), m_start(start), m_end(end){};
+};
+
+struct TokenInfo {
+	Token m_tok;
+	std::string m_val;
+	Location m_loc;
+
+	TokenInfo(
+		const Token tok,
+		const std::string& v,
+		std::string filename,
+		std::shared_ptr<std::string> line,
+		size_t lineIdx,
+		size_t start,
+		size_t end)
+		: m_tok(tok), m_val(v), m_loc(filename, line, lineIdx, start, end){};
+	TokenInfo(
+		const Token tok,
+		std::string&& v,
+		std::string filename,
+		std::shared_ptr<std::string> line,
+		size_t lineIdx,
+		size_t start,
+		size_t end)
+		: m_tok(tok), m_val(v), m_loc(filename, line, lineIdx, start, end){};
+};
 
 }

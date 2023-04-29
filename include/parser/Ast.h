@@ -96,9 +96,10 @@ public:
 		std::cout << "FuncDefAST { "
 				  << m_name << ", ";
 		m_param->Dump();
-		std::cout << stateMutabilityToString(m_state) << ", ";
+		std::cout << ' ' << stateMutabilityToString(m_state) << ", ";
 		if (m_type)
 			m_type->Dump();
+		std::cout << ' ';
 		m_block->Dump();
 		std::cout << " }";
 	}
@@ -117,6 +118,7 @@ public:
 		std::cout << "ParameterListAST { ";
 		for (const auto& param: params) {
 			param->Dump();
+			std::cout << ", ";
 		}
 		std::cout << " }";
 	}

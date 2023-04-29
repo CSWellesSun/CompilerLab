@@ -29,6 +29,9 @@
 #define GREEN "\033[32m"  /* Green */
 #define YELLOW "\033[33m" /* Yellow */
 #define GRAY "\033[30m"	  /* Light gray */
+#define DARKRED "\033[1;31m"
+#define DARKGREEN "\033[1;32m"
+#define DARKYELLOW "\033[1;33m"
 
 
 #define LOG_ERROR(fmt, ...)                          \
