@@ -5,7 +5,9 @@
 
 #include <algorithm>
 #include <cctype>
+#include <ctype.h>
 #include <iostream>
+#include <memory>
 #include <sstream>
 
 using namespace minisolc;
@@ -16,189 +18,189 @@ void TokenStream::tokenize() {
 		case '=':
 			++m_striter; // advance
 			if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::Equal, "=="});
+				addToken(Token::Equal, "==");
 				++m_striter;
 			} else if (m_striter != m_source.end() && *m_striter == '>') {
-				m_tokens.push_back({Token::DoubleArrow, "=>"});
+				addToken(Token::DoubleArrow, "=>");
 				++m_striter;
 			} else {
-				m_tokens.push_back({Token::Assign, "="});
+				addToken(Token::Assign, "=");
 			}
 			break;
 		case '+':
 			++m_striter;
 			if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::AssignAdd, "+="});
+				addToken(Token::AssignAdd, "+=");
 				++m_striter;
 			} else if (m_striter != m_source.end() && *m_striter == '+') {
-				m_tokens.push_back({Token::Inc, "++"});
+				addToken(Token::Inc, "++");
 				++m_striter;
 			} else {
-				m_tokens.push_back({Token::Add, "+"});
+				addToken(Token::Add, "+");
 			}
 			break;
 		case '-':
 			++m_striter;
 			if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::AssignSub, "-="});
+				addToken(Token::AssignSub, "-=");
 				++m_striter;
 			} else if (m_striter != m_source.end() && *m_striter == '>') {
-				m_tokens.push_back({Token::RightArrow, "->"});
+				addToken(Token::RightArrow, "->");
 				++m_striter;
 			} else if (m_striter != m_source.end() && *m_striter == '-') {
-				m_tokens.push_back({Token::Dec, "--"});
+				addToken(Token::Dec, "--");
 				++m_striter;
 			} else {
-				m_tokens.push_back({Token::Sub, "-"});
+				addToken(Token::Sub, "-");
 			}
 			break;
 		case '*':
 			++m_striter;
 			if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::AssignMul, "*="});
+				addToken(Token::AssignMul, "*=");
 				++m_striter;
 			} else if (m_striter != m_source.end() && *m_striter == '*') {
-				m_tokens.push_back({Token::Exp, "**"});
+				addToken(Token::Exp, "**");
 				++m_striter;
 			} else {
-				m_tokens.push_back({Token::Mul, "*"});
+				addToken(Token::Mul, "*");
 			}
 			break;
 		case '/':
 			++m_striter;
 			if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::AssignDiv, "/="});
+				addToken(Token::AssignDiv, "/=");
 				++m_striter;
 			} else if (*m_striter == '*' || *m_striter == '/') {
 				m_error = !skipAnnotation();
 			} else {
-				m_tokens.push_back({Token::Div, "/"});
+				addToken(Token::Div, "/");
 			}
 			break;
 		case '%':
 			++m_striter;
 			if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::AssignMod, "%="});
+				addToken(Token::AssignMod, "%=");
 				++m_striter;
 			} else {
-				m_tokens.push_back({Token::Mod, "%"});
+				addToken(Token::Mod, "%");
 			}
 			break;
 		case '!':
 			++m_striter;
 			if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::NotEqual, "!="});
+				addToken(Token::NotEqual, "!=");
 				++m_striter;
 			} else {
-				m_tokens.push_back({Token::Not, "!"});
+				addToken(Token::Not, "!");
 			}
 			break;
 		case '>':
 			++m_striter;
 			if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::GreaterThanOrEqual, ">="});
+				addToken(Token::GreaterThanOrEqual, ">=");
 				++m_striter;
 			} else if (m_striter != m_source.end() && *m_striter == '>') {
 				if (m_striter + 1 != m_source.end() && *(m_striter + 1) == '=') {
 					if (m_striter + 2 != m_source.end() && *(m_striter + 2) == '>') {
-						m_tokens.push_back({Token::AssignSar, ">>>="});
+						addToken(Token::AssignSar, ">>>=");
 						m_striter += 3;
 					} else {
-						m_tokens.push_back({Token::AssignShr, ">>="});
+						addToken(Token::AssignShr, ">>=");
 						m_striter += 2;
 					}
 				} else {
-					m_tokens.push_back({Token::SAR, ">>"});
+					addToken(Token::SAR, ">>");
 					++m_striter;
 				}
 			} else {
-				m_tokens.push_back({Token::GreaterThan, ">"});
+				addToken(Token::GreaterThan, ">");
 			}
 			break;
 		case '<':
 			++m_striter;
 			if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::LessThanOrEqual, "<="});
+				addToken(Token::LessThanOrEqual, "<=");
 				++m_striter;
 			} else if (m_striter != m_source.end() && *m_striter == '<') {
 				if (m_striter + 1 != m_source.end() && *(m_striter + 1) == '=') {
-					m_tokens.push_back({Token::AssignShl, "<<="});
+					addToken(Token::AssignShl, "<<=");
 					m_striter += 2;
 				} else {
-					m_tokens.push_back({Token::SHL, "<<"});
+					addToken(Token::SHL, "<<");
 					++m_striter;
 				}
 			} else {
-				m_tokens.push_back({Token::LessThan, "<"});
+				addToken(Token::LessThan, "<");
 			}
 			break;
 		case '&':
 			++m_striter;
 			if (m_striter != m_source.end() && *m_striter == '&') {
-				m_tokens.push_back({Token::And, "&&"});
+				addToken(Token::And, "&&");
 				++m_striter;
 			} else if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::AssignBitAnd, "&="});
+				addToken(Token::AssignBitAnd, "&=");
 				++m_striter;
 			} else {
-				m_tokens.push_back({Token::BitAnd, "&"});
+				addToken(Token::BitAnd, "&");
 			}
 			break;
 		case '|':
 			++m_striter;
 			if (m_striter != m_source.end() && *m_striter == '|') {
-				m_tokens.push_back({Token::Or, "||"});
+				addToken(Token::Or, "||");
 				++m_striter;
 			} else if (m_striter != m_source.end() && *m_striter == '=') {
-				m_tokens.push_back({Token::AssignBitOr, "|="});
+				addToken(Token::AssignBitOr, "|=");
 				++m_striter;
 			} else {
-				m_tokens.push_back({Token::BitOr, "|"});
+				addToken(Token::BitOr, "|");
 			}
 			break;
 		case '~':
 			++m_striter;
-			m_tokens.push_back({Token::BitNot, "~"});
+			addToken(Token::BitNot, "~");
 			break;
 		case '?':
 			++m_striter;
-			m_tokens.push_back({Token::Conditional, "?"});
+			addToken(Token::Conditional, "?");
 			break;
 		case ':':
 			++m_striter;
-			m_tokens.push_back({Token::Colon, ":"});
+			addToken(Token::Colon, ":");
 			break;
 		case '(':
 			++m_striter;
-			m_tokens.push_back({Token::LParen, "("});
+			addToken(Token::LParen, "(");
 			break;
 		case ')':
 			++m_striter;
-			m_tokens.push_back({Token::RParen, ")"});
+			addToken(Token::RParen, ")");
 			break;
 		case '[':
 			++m_striter;
-			m_tokens.push_back({Token::LBrack, "["});
+			addToken(Token::LBrack, "[");
 			break;
 		case ']':
 			++m_striter;
-			m_tokens.push_back({Token::RBrack, "]"});
+			addToken(Token::RBrack, "]");
 			break;
 		case '{':
 			++m_striter;
-			m_tokens.push_back({Token::LBrace, "{"});
+			addToken(Token::LBrace, "{");
 			break;
 		case '}':
 			++m_striter;
-			m_tokens.push_back({Token::RBrace, "}"});
+			addToken(Token::RBrace, "}");
 			break;
 		case ';':
 			++m_striter;
-			m_tokens.push_back({Token::Semicolon, ";"});
+			addToken(Token::Semicolon, ";");
 			break;
 		case ',':
 			++m_striter;
-			m_tokens.push_back({Token::Comma, ","});
+			addToken(Token::Comma, ",");
 			break;
 		case '\0':
 			++m_striter;
@@ -208,7 +210,8 @@ void TokenStream::tokenize() {
 			break;
 		case '\n':
 			++m_striter;
-			m_tokens.push_back({Token::Whitespace, "\n"});
+			++m_curline;
+			m_line_start = m_striter;
 			break;
 		default: {
 			if (isalus(*m_striter)) {
@@ -229,7 +232,7 @@ void TokenStream::tokenize() {
 		}
 		// LOG_INFO("find token: %s", m_tokens.back().val.c_str());
 	}
-	m_tokens.push_back({Token::EOS, ""});
+	addToken(Token::EOS, "");
 	if (!m_error)
 		LOG_INFO("Tokenize Succeeds.");
 }
@@ -237,7 +240,7 @@ void TokenStream::tokenize() {
 void TokenStream::tokenizeKeywordIdent() {
 	auto right_bound = std::find_if_not(m_striter, m_source.cend(), [](const char ch) { return isalnumus(ch); });
 	std::string val = std::string(m_striter, right_bound);
-	m_tokens.emplace_back(keywordByName(val), val);
+	addToken(keywordByName(val), val);
 	m_striter = right_bound;
 }
 
@@ -268,13 +271,19 @@ bool TokenStream::tokenizeNumber() {
 			res = false;
 		}
 	}
-	m_tokens.emplace_back(Token::Number, std::move(val));
+	addToken(Token::Number, std::move(val));
 	m_striter = right_bound;
 	return res;
 }
 
 void TokenStream::skipSpace() {
-	m_striter = std::find_if_not(m_striter, m_source.cend(), [](const char ch) { return isspace(ch); });
+	while (isspace(*m_striter)) {
+		if (*m_striter == '\n') {
+			++m_curline;
+			m_line_start = m_striter + 1;
+		}
+		++m_striter;
+	}
 }
 
 bool TokenStream::skipAnnotation() {
@@ -286,13 +295,13 @@ bool TokenStream::skipAnnotation() {
 	} else if (*m_striter == '/' && *(m_striter + 1) == '*') {
 		/* multi-line annotations */
 		right_pos = m_source.find("*/", m_striter + 2 - m_source.begin());
+		right_pos += 2;
 	} else {
 		LOG_WARNING("Parse Annotation Fails.");
 		return false;
 	}
 	if (right_pos != std::string::npos) {
-		m_striter = m_source.begin() + right_pos + 2;
-		// LOG_INFO("Skip Annotation.");
+		m_striter = m_source.begin() + right_pos;
 		return true;
 	} else {
 		LOG_WARNING("Parse Annotation Fails.");
@@ -307,7 +316,7 @@ bool TokenStream::tokenizeString() {
 		return false;
 	}
 	std::string&& val = std::string(m_striter, right_quot + 1);
-	m_tokens.emplace_back(Token::StringLiteral, std::move(val));
+	addToken(Token::StringLiteral, std::move(val));
 	m_striter = right_quot + 1;
 	return true;
 }
@@ -316,6 +325,6 @@ void TokenStream::readLines() {
 	std::string line;
 	std::stringstream ss(m_source);
 	while (std::getline(ss, line)) {
-		m_lines.push_back(std::move(line));
+		m_lines.push_back(std::make_shared<std::string>(line));
 	}
 }

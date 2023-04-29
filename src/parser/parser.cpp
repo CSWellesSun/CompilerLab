@@ -38,7 +38,7 @@ std::unique_ptr<ContractDefinition> Parser::parseContractDefinition() {
 				subnodes.push_back(parseVariableDeclaration(true));
 			} else {
 				LOG_WARNING("Expect function definition or variable declaration!");
-				throw ContractDefinitionParseError(curLine(), curTok());
+				throw ContractDefinitionParseError(curTokInfo());
 				break;
 			}
 		}
@@ -222,7 +222,10 @@ std::unique_ptr<PrimaryExpression> Parser::parsePrimaryExpression() {
 			break;
 		}
 	} catch (ParseError& e) {
+<<<<<<< HEAD
 		std::cout << "helloError" << '\n';
+=======
+>>>>>>> c45277eeed906a3d0a3c8940b1cb8c900a0cf0be
 		e.print();
 	}
 	return nullptr;
