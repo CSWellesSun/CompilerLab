@@ -20,17 +20,17 @@ public:
 
 class Declaration: public BaseAST {
 public:
-	Declaration(std::string name, std::unique_ptr<BaseAST> type = nullptr): m_name(name), m_type(std::move(type)) {}
+	Declaration(std::string name, std::shared_ptr<BaseAST> type = nullptr): m_name(name), m_type(std::move(type)) {}
 
 protected:
 	std::string m_name;
-	std::unique_ptr<BaseAST> m_type;
+	std::shared_ptr<BaseAST> m_type;
 };
 
 // SourceUnit 是 BaseAST
 class SourceUnit: public BaseAST {
 public:
-	SourceUnit(std::unique_ptr<BaseAST> subnode): m_subnode(std::move(subnode)) {}
+	SourceUnit(std::shared_ptr<BaseAST> subnode): m_subnode(std::move(subnode)) {}
 	void Dump() const override {
 		std::cout << "SourceUnitAST { ";
 		if (m_subnode)
@@ -40,18 +40,18 @@ public:
 
 private:
 	// 用智能指针管理对象
-	std::unique_ptr<BaseAST> m_subnode;
+	std::shared_ptr<BaseAST> m_subnode;
 };
 
 class ContractDefinition: public Declaration {
 public:
 	// 用智能指针管理对象
-	ContractDefinition(std::string name, std::vector<std::unique_ptr<BaseAST>> subnodes)
+	ContractDefinition(std::string name, std::vector<std::shared_ptr<BaseAST>> subnodes)
 		: Declaration(name), m_subnodes(std::move(subnodes)) {}
 	void Dump() const override {
 		std::cout << "ContractDefinitionAST { ";
 		std::cout << m_name << ", ";
-		for (auto& subnode: m_subnodes) {
+		for (const auto& subnode: m_subnodes) {
 			subnode->Dump();
 			std::cout << ", ";
 		}
@@ -59,12 +59,12 @@ public:
 	}
 
 private:
-	std::vector<std::unique_ptr<BaseAST>> m_subnodes;
+	std::vector<std::shared_ptr<BaseAST>> m_subnodes;
 };
 
 class VariableDeclaration: public Declaration {
 public:
-	VariableDeclaration(std::string name, std::unique_ptr<BaseAST> type, std::unique_ptr<BaseAST> expr)
+	VariableDeclaration(std::string name, std::shared_ptr<BaseAST> type, std::shared_ptr<BaseAST> expr)
 		: Declaration(name, std::move(type)), m_expr(std::move(expr)) {}
 	void Dump() const override {
 		std::cout << "StateVariableDeclarationAST { ";
@@ -76,7 +76,7 @@ public:
 	}
 
 private:
-	std::unique_ptr<BaseAST> m_expr; // optional
+	std::shared_ptr<BaseAST> m_expr; // optional
 };
 
 // FuncDef 也是 BaseAST
@@ -84,17 +84,17 @@ class FunctionDefinition: public Declaration {
 public:
 	FunctionDefinition(
 		std::string name,
-		std::unique_ptr<BaseAST> param_list,
+		std::shared_ptr<BaseAST> param_list,
 		StateMutability state_mut,
 		Visibility visibility,
-		std::unique_ptr<BaseAST> return_type,
-		std::unique_ptr<BaseAST> block)
+		std::shared_ptr<BaseAST> return_type,
+		std::shared_ptr<BaseAST> block)
 		: Declaration(name, std::move(return_type)), m_param(std::move(param_list)), m_state(state_mut),
 		  m_visibility(visibility), m_block(std::move(block)) {}
 
 	void Dump() const override {
-		std::cout << "FuncDefAST { ";
-		std::cout << m_name << ", ";
+		std::cout << "FuncDefAST { "
+				  << m_name << ", ";
 		m_param->Dump();
 		std::cout << stateMutabilityToString(m_state) << ", ";
 		if (m_type)
@@ -104,25 +104,25 @@ public:
 	}
 
 private:
-	std::unique_ptr<BaseAST> m_param;
+	std::shared_ptr<BaseAST> m_param;
 	StateMutability m_state;
 	Visibility m_visibility;
-	std::unique_ptr<BaseAST> m_block;
+	std::shared_ptr<BaseAST> m_block;
 };
 
 class ParameterList: public BaseAST {
 public:
-	ParameterList(std::vector<std::unique_ptr<BaseAST>> params): params(std::move(params)) {}
+	ParameterList(std::vector<std::shared_ptr<BaseAST>> params): params(std::move(params)) {}
 	void Dump() const override {
 		std::cout << "ParameterListAST { ";
-		for (auto& param: params) {
+		for (const auto& param: params) {
 			param->Dump();
 		}
 		std::cout << " }";
 	}
 
 private:
-	std::vector<std::unique_ptr<BaseAST>> params; // type, ident
+	std::vector<std::shared_ptr<BaseAST>> params; // type, ident
 };
 
 class TypeName: public BaseAST {};
@@ -138,10 +138,10 @@ private:
 
 class Block: public BaseAST {
 public:
-	Block(std::vector<std::unique_ptr<BaseAST>> stmts): stmts(std::move(stmts)) {}
+	Block(std::vector<std::shared_ptr<BaseAST>> stmts): stmts(std::move(stmts)) {}
 	void Dump() const override {
 		std::cout << "BlockAST { ";
-		for (auto& stmt: stmts) {
+		for (const auto& stmt: stmts) {
 			stmt->Dump();
 			std::cout << ", ";
 		}
@@ -149,12 +149,12 @@ public:
 	}
 
 private:
-	std::vector<std::unique_ptr<BaseAST>> stmts;
+	std::vector<std::shared_ptr<BaseAST>> stmts;
 };
 
 class Statement: public BaseAST {
 public:
-	Statement(std::unique_ptr<BaseAST> child): child(std::move(child)) {}
+	Statement(std::shared_ptr<BaseAST> child): child(std::move(child)) {}
 	void Dump() const override {
 		std::cout << "StatementAST { ";
 		child->Dump();
@@ -162,12 +162,12 @@ public:
 	}
 
 private:
-	std::unique_ptr<BaseAST> child;
+	std::shared_ptr<BaseAST> child;
 };
 
 class Return: public BaseAST {
 public:
-	Return(std::unique_ptr<BaseAST> expr): expr(std::move(expr)) {}
+	Return(std::shared_ptr<BaseAST> expr): expr(std::move(expr)) {}
 	void Dump() const override {
 		std::cout << "ReturnAST { ";
 		if (expr)
@@ -176,7 +176,7 @@ public:
 	}
 
 private:
-	std::unique_ptr<BaseAST> expr; // optional
+	std::shared_ptr<BaseAST> expr; // optional
 };
 
 class Expression: public BaseAST {};
@@ -214,6 +214,63 @@ public:
 
 private:
 	std::string m_unit;
+};
+
+class Assignment: public Expression {
+public:
+	Assignment(std::shared_ptr<Expression> lhs, std::string assignOp, std::shared_ptr<Expression> rhs)
+		: m_leftHandSide(std::move(lhs)), m_assigmentOp(std::move(assignOp)), m_rightHandSide(std::move(rhs)) {}
+
+	void Dump() const override {
+		std::cout << "AssignmentAST { ";
+		m_leftHandSide->Dump();
+		std::cout << ", " << m_assigmentOp << ", ";
+		m_rightHandSide->Dump();
+		std::cout << " }";
+	}
+
+
+private:
+	std::shared_ptr<Expression> m_leftHandSide;
+	std::string m_assigmentOp;
+	std::shared_ptr<Expression> m_rightHandSide;
+};
+
+class BinaryOp: public Expression {
+public:
+	BinaryOp(std::shared_ptr<Expression> lhs, std::string binaryOp, std::shared_ptr<Expression> rhs)
+		: m_leftHandSide(std::move(lhs)), m_binaryOp(std::move(binaryOp)), m_rightHandSide(std::move(rhs)) {}
+
+	void Dump() const override {
+		std::cout << "BinaryOpAST { ";
+		m_leftHandSide->Dump();
+		std::cout << ", " << m_binaryOp << ", ";
+		m_rightHandSide->Dump();
+		std::cout << " }";
+	}
+
+
+private:
+	std::shared_ptr<Expression> m_leftHandSide;
+	std::string m_binaryOp;
+	std::shared_ptr<Expression> m_rightHandSide;
+};
+
+class UnaryOp: public Expression {
+public:
+	UnaryOp(std::string unaryOp, std::shared_ptr<Expression> subExpr, bool isPrefix)
+		: m_unaryOp(std::move(unaryOp)), m_subExpr(std::move(subExpr)), m_isPrefix(isPrefix) {}
+	void Dump() const override {
+		std::cout << "UnaryOpAST { "
+				  << (m_isPrefix ? "prefix " : "postfix ")
+				  << m_unaryOp << ", ";
+		m_subExpr->Dump();
+		std::cout << " }";
+	}
+private:
+	std::string m_unaryOp;
+	std::shared_ptr<Expression> m_subExpr;
+	bool m_isPrefix;
 };
 
 }

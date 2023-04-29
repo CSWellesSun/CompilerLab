@@ -35,7 +35,7 @@ public:
 
 	TokenInfo curTokInfo() const {
 		if (mtokeniter == m_tokens.cend())
-			return TokenInfo(Token::EOS, "", nullptr, 0, 0, 0);
+			return TokenInfo(Token::EOS, "", 0, nullptr, 0, 0, 0);
 		return *mtokeniter;
 	}
 
@@ -100,6 +100,7 @@ private:
 		m_tokens.push_back({
 			tok,
 			val,
+			precedence(tok),
 			*m_curline,
 			(size_t)(m_curline - m_lines.cbegin() + 1),
 			(size_t)(m_striter - m_line_start),

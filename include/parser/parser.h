@@ -1,7 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <tuple>
+// #include <tuple>
+#include <functional>
 
 #include "AST.h"
 #include "lexer/TokenStream.h"
@@ -25,7 +26,7 @@ private:
 		bool res = curTok() == tok;
 		return res;
 	}
-	bool peekCur(bool (*func)(Token)) {
+	bool peekCur(std::function<bool(Token)> func) {
 		if (curTok() == Token::EOS)
 			return false;
 		bool res = func(curTok());
@@ -39,7 +40,7 @@ private:
 			advance();
 		return res;
 	}
-	bool match(bool (*func)(Token)) {
+	bool match(std::function<bool(Token)> func) {
 		if (curTok() == Token::EOS)
 			return false;
 		bool res = func(curTok());
@@ -51,7 +52,7 @@ private:
 		val = curVal();
 		return match(tok);
 	}
-	bool matchGet(bool (*func)(Token), std::string& val) {
+	bool matchGet(std::function<bool(Token)> func, std::string& val) {
 		val = curVal();
 		return match(func);
 	}
@@ -61,7 +62,7 @@ private:
 		throw UnexpectedToken(curTokInfo(), tok);
 		return false;
 	}
-	bool expect(bool (*func)(Token)) {
+	bool expect(std::function<bool(Token)> func) {
 		if (match(func)) return true;
 		throw UnexpectedToken(curTokInfo(), func);
 		return false;
@@ -71,7 +72,7 @@ private:
 		throw UnexpectedToken(curTokInfo(), tok);
 		return false;
 	}
-	bool expectGet(bool (*func)(Token), std::string& val) {
+	bool expectGet(std::function<bool(Token)> func, std::string& val) {
 		if (matchGet(func, val)) return true;
 		throw UnexpectedToken(curTokInfo(), func);
 		return false;
@@ -83,20 +84,34 @@ private:
 	void advance() { m_source.advance(); }
 	bool eof() const { return m_source.curTok() == Token::EOS; }
 
-	std::unique_ptr<SourceUnit> parseSourceUnit();
-	std::unique_ptr<ContractDefinition> parseContractDefinition();
-	std::unique_ptr<VariableDeclaration> parseVariableDeclaration(bool end);
-	std::unique_ptr<FunctionDefinition> parseFunctionDefinition();
-	std::unique_ptr<ParameterList> parseParameterList();
-	std::unique_ptr<TypeName> parseTypeName();
-	std::unique_ptr<Block> parseBlock();
-	std::unique_ptr<Statement> parseStatement();
-	std::unique_ptr<Return> parseReturn();
-	std::unique_ptr<Expression> parseExpression();
-	std::unique_ptr<PrimaryExpression> parsePrimaryExpression();
+	std::shared_ptr<SourceUnit> parseSourceUnit();
+	std::shared_ptr<ContractDefinition> parseContractDefinition();
+	std::shared_ptr<VariableDeclaration> parseVariableDeclaration(bool end);
+	std::shared_ptr<FunctionDefinition> parseFunctionDefinition();
+	std::shared_ptr<ParameterList> parseParameterList();
+	std::shared_ptr<TypeName> parseTypeName();
+	std::shared_ptr<Block> parseBlock();
+	std::shared_ptr<Statement> parseStatement();
+	std::shared_ptr<Return> parseReturn();
+	std::shared_ptr<Expression> parseExpression(
+		std::shared_ptr<Expression> const& partiallyParsedExpression = std::shared_ptr<Expression>()
+	);
+	std::shared_ptr<Expression> parseBinaryExpression(
+		int minPrecedence = 4,
+		std::shared_ptr<Expression> const& partiallyParsedExpression = std::shared_ptr<Expression>()
+	);
+	std::shared_ptr<Expression> parseUnaryExpression(
+		std::shared_ptr<Expression> const& partiallyParsedExpression = std::shared_ptr<Expression>()
+	);
+	std::shared_ptr<Expression> parseLeftHandSideExpression(
+		std::shared_ptr<Expression> const& partiallyParsedExpression = std::shared_ptr<Expression>()
+	);
+	std::shared_ptr<Expression> parsePrimaryExpression();
+	std::shared_ptr<Expression> parseLiterial();
+	
 
 	TokenStream& m_source;
-	std::unique_ptr<BaseAST> m_root;
+	std::shared_ptr<BaseAST> m_root;
 };
 
 }

@@ -30,64 +30,40 @@ public:
 
 protected:
 	void printErrorLine(std::string msg = "") const {
-		std::cout << RED << "error: " << RESET << std::endl;
+		std::cout << RED << "error: " << RESET << '\n';
 
 		std::string head = std::to_string(m_tokinfo.m_loc.m_line_idx) + " | ";
-		std::cout << head << *(m_tokinfo.m_loc.m_line) << std::endl;
+		std::cout << head << *(m_tokinfo.m_loc.m_line) << '\n';
 
 		head = std::string(head.size(), ' ');
 		std::cout << head;
 		for (size_t i = 0; i < m_tokinfo.m_loc.m_start; i++) {
-			std::cout << " ";
+			std::cout << ' ';
 		}
 		std::cout << RED;
 		for (size_t i = m_tokinfo.m_loc.m_start; i < m_tokinfo.m_loc.m_end; i++) {
-			std::cout << "^";
+			std::cout << '^';
 		}
-		std::cout << RESET << std::endl;
+		std::cout << RESET << '\n';
 
 		std::cout << head;
 		for (size_t i = 0; i < m_tokinfo.m_loc.m_start; i++) {
-			std::cout << " ";
+			std::cout << ' ';
 		}
-		std::cout << GREEN << msg << RESET << std::endl;
+		std::cout << YELLOW << msg << RESET << '\n';
 	}
 
 	TokenInfo m_tokinfo;
 };
 
 class UnexpectedToken: public ParseError {
-<<<<<<< HEAD
-public:
-	UnexpectedToken(const std::string& line, Token tok, Token expectTok)
-		: ParseError(line, tok) {
-        m_expectTok.push_back(expectTok);
-    }
-	UnexpectedToken(const std::string& line, Token tok, bool (*func)(Token))
-		: ParseError(line, tok) {
-        for (int i = 0; i < static_cast<int>(Token::NUM_TOKENS); ++i) {
-            if (func(static_cast<Token>(i))) {
-                m_expectTok.push_back(static_cast<Token>(i));
-            }
-        }
-    }
-
-	void print() const override {
-		std::cout << m_line << '\n'
-				  << "Expect token: ";
-        for (auto tok : m_expectTok) {
-            std::cout << tokenToString(tok) << ' ';
-        }
-		std::cout << '\n' 
-		 		  << "But got: " << tokenToString(m_tok) << '\n';
-=======
 public: 
 	/// TODO: 有可能有Token和func同时的情况以及前者为vector的情况
 	UnexpectedToken(TokenInfo tokInfo, Token expectTok): ParseError(tokInfo) { m_expectTok.push_back(expectTok); }
-	UnexpectedToken(TokenInfo tokInfo, bool (*func)(Token)): ParseError(tokInfo) {
-		for (int i = 0; i < (int) Token::NUM_TOKENS; i++) {
-			if (func((Token) i)) {
-				m_expectTok.push_back((Token) i);
+	UnexpectedToken(TokenInfo tokInfo, std::function<bool(Token)> func): ParseError(tokInfo) {
+		for (int i = 0; i < static_cast<int>(Token::NUM_TOKENS); i++) {
+			if (func(static_cast<Token>(i))) {
+				m_expectTok.push_back(static_cast<Token>(i));
 			}
 		}
 	}
@@ -96,12 +72,11 @@ public:
 		std::stringstream ss;
 		ss << "Expect token:";
 		for (auto tok: m_expectTok) {
-			ss << " " << tokenToString(tok);
+			ss << ' ' << tokenToString(tok);
 		}
-		ss << ", but got: " << tokenToString(m_tokinfo.m_tok) << std::endl;
+		ss << ", but got: " << tokenToString(m_tokinfo.m_tok) << '\n';
 
 		printErrorLine(ss.str());
->>>>>>> c45277eeed906a3d0a3c8940b1cb8c900a0cf0be
 	}
 
 private:
@@ -112,17 +87,11 @@ class ContractDefinitionParseError: public ParseError {
 public:
 	ContractDefinitionParseError(TokenInfo tokInfo): ParseError(tokInfo) {}
 	void print() const override {
-<<<<<<< HEAD
-		std::cout << m_line << '\n'
-				  << "Expect function definition or variable declaration!" << '\n'
-				  << "But got: " << tokenToString(m_tok) << '\n';
-=======
 		std::stringstream ss;
 		ss << "Expect function definition or variable declaration,";
-		ss << " but got: " << tokenToString(m_tokinfo.m_tok) << std::endl;
+		ss << " but got: " << tokenToString(m_tokinfo.m_tok) << '\n';
 
 		printErrorLine(ss.str());
->>>>>>> c45277eeed906a3d0a3c8940b1cb8c900a0cf0be
 	}
 };
 

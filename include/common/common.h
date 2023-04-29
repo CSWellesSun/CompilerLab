@@ -19,12 +19,13 @@ struct Location {
 struct TokenInfo {
 	Token m_tok;
 	std::string m_val;
+	int m_precedence;
 	Location m_loc;
 
-	TokenInfo(const Token tok, const std::string& v, std::shared_ptr<std::string> line, size_t lineIdx, size_t start, size_t end)
-		: m_tok(tok), m_val(v), m_loc(line, lineIdx, start, end){};
-	TokenInfo(const Token tok, std::string&& v, std::shared_ptr<std::string> line, size_t lineIdx, size_t start, size_t end)
-		: m_tok(tok), m_val(v), m_loc(line, lineIdx, start, end){};
+	TokenInfo(const Token tok, const std::string& v, int precedence, std::shared_ptr<std::string> line, size_t lineIdx, size_t start, size_t end)
+		: m_tok(tok), m_val(v), m_precedence(precedence), m_loc(line, lineIdx, start, end){};
+	TokenInfo(const Token tok, std::string&& v, int precedence, std::shared_ptr<std::string> line, size_t lineIdx, size_t start, size_t end)
+		: m_tok(tok), m_val(v), m_precedence(precedence), m_loc(line, lineIdx, start, end){};
 };
 
 }
