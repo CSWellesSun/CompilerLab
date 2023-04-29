@@ -1,13 +1,13 @@
 #pragma once
 
+#include <corecrt.h>
 #include <exception>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
-#include "common.h"
-#include "defs.h"
+#include "Defs.h"
 #include "lexer/Token.h"
 
 
@@ -30,34 +30,37 @@ public:
 
 protected:
 	void printErrorLine(std::string msg = "") const {
-		std::cout << RED << "error: " << RESET << std::endl;
+		std::string filename = m_tokinfo.m_loc.m_filename;
+		std::string line = *(m_tokinfo.m_loc.m_line);
+		size_t idx = m_tokinfo.m_loc.m_line_idx;
+		size_t start = m_tokinfo.m_loc.m_start;
+		size_t end = m_tokinfo.m_loc.m_end;
 
-		std::string head = std::to_string(m_tokinfo.m_loc.m_line_idx) + " | ";
-		std::cout << head << *(m_tokinfo.m_loc.m_line) << std::endl;
+		// error:
+		std::cout << "╭─ " << DARKRED << "ERROR" << RESET;
+		std::cout << " In file " << filename << ", line " << idx << std::endl;
 
-		head = std::string(head.size(), ' ');
+		// line:
+		std::string head = "╰─ " + std::to_string(idx) + " ";
 		std::cout << head;
-		for (size_t i = 0; i < m_tokinfo.m_loc.m_start; i++) {
+		std::cout << GRAY << line.substr(0, start) << RESET << DARKRED << line.substr(start, end - start) << RESET
+				  << GRAY << line.substr(end) << RESET << std::endl;
+
+		// message:
+		head = std::string(head.length() - 4, ' ');
+		std::cout << head;
+		for (size_t i = 0; i < start; i++) {
 			std::cout << " ";
 		}
-		std::cout << RED;
-		for (size_t i = m_tokinfo.m_loc.m_start; i < m_tokinfo.m_loc.m_end; i++) {
-			std::cout << "^";
-		}
-		std::cout << RESET << std::endl;
-
-		std::cout << head;
-		for (size_t i = 0; i < m_tokinfo.m_loc.m_start; i++) {
-			std::cout << " ";
-		}
-		std::cout << GREEN << msg << RESET << std::endl;
+		std::cout << "╰─ ";
+		std::cout << DARKGREEN << msg << RESET << std::endl;
 	}
 
 	TokenInfo m_tokinfo;
 };
 
 class UnexpectedToken: public ParseError {
-public: 
+public:
 	/// TODO: 有可能有Token和func同时的情况以及前者为vector的情况
 	UnexpectedToken(TokenInfo tokInfo, Token expectTok): ParseError(tokInfo) { m_expectTok.push_back(expectTok); }
 	UnexpectedToken(TokenInfo tokInfo, bool (*func)(Token)): ParseError(tokInfo) {
