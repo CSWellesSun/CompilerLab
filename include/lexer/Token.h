@@ -250,6 +250,11 @@ char const* visibilityToString(Visibility _visibility);
 constexpr bool isType(Token tok) { return tok >= Token::Int && tok < Token::TypesEnd; }
 constexpr bool isLiteral(Token tok) { return tok >= Token::TrueLiteral && tok <= Token::CommentLiteral; }
 constexpr bool isNumUnit(Token tok) { return tok >= Token::SubWei && tok <= Token::SubYear; }
+constexpr bool isAssignmentOp(Token tok) { return tok >= Token::Assign && tok <= Token::AssignMod; }
+constexpr bool isBinaryOp(Token tok) { return tok >= Token::Comma && tok <= Token::Exp; }
+constexpr bool isUnaryOp(Token tok) { return (tok >= Token::Not && tok <= Token::Delete) || tok == Token::Sub; }
+constexpr bool isCompareOp(Token tok) { return tok >= Token::Equal && tok <= Token::GreaterThanOrEqual; }
+
 constexpr bool isStateMutability(Token tok) {
 	return tok == Token::View || tok == Token::Pure || tok == Token::Payable;
 }
@@ -261,6 +266,17 @@ constexpr bool isalus(char c) { return std::isalpha(c) || c == '_'; };
 constexpr bool isalnumus(char c) { return std::isalpha(c) || std::isdigit(c) || c == '_'; };
 constexpr bool isoct(char c) { return c >= '0' && c <= '7'; };
 constexpr bool issep(char c) { return !std::isalnum(c); }
+
+constexpr int precedence(Token tok)
+{
+	int constexpr precs[static_cast<size_t>(Token::NUM_TOKENS)] =
+	{
+		#define T(name, string, precedence) precedence,
+		TOKEN_LIST(T, T)
+		#undef T
+	};
+	return precs[static_cast<size_t>(tok)];
+}
 
 struct Location {
 	std::shared_ptr<Line> m_line;

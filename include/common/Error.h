@@ -17,7 +17,7 @@ namespace minisolc {
 class Error: public std::exception {
 public:
 	Error(const std::string& msg): m_msg(msg) {}
-	virtual const char* what() const throw() { return m_msg.c_str(); }
+	virtual const char* what() const noexcept { return m_msg.c_str(); }
 	virtual void print() const = 0;
 
 private:
@@ -71,10 +71,10 @@ class UnexpectedToken: public ParseError {
 public:
 	/// TODO: 有可能有Token和func同时的情况以及前者为vector的情况
 	UnexpectedToken(TokenInfo tokInfo, Token expectTok): ParseError(tokInfo) { m_expectTok.push_back(expectTok); }
-	UnexpectedToken(TokenInfo tokInfo, bool (*func)(Token)): ParseError(tokInfo) {
-		for (int i = 0; i < (int) Token::NUM_TOKENS; i++) {
-			if (func((Token) i)) {
-				m_expectTok.push_back((Token) i);
+	UnexpectedToken(TokenInfo tokInfo, std::function<bool(Token)> func): ParseError(tokInfo) {
+		for (int i = 0; i < static_cast<int>(Token::NUM_TOKENS); i++) {
+			if (func(static_cast<Token>(i))) {
+				m_expectTok.push_back(static_cast<Token>(i));
 			}
 		}
 	}
@@ -83,9 +83,9 @@ public:
 		std::stringstream ss;
 		ss << "Expect token:";
 		for (auto tok: m_expectTok) {
-			ss << " " << tokenToString(tok);
+			ss << ' ' << tokenToString(tok);
 		}
-		ss << ", but got: " << tokenToString(m_tokinfo.m_tok) << std::endl;
+		ss << ", but got: " << tokenToString(m_tokinfo.m_tok) << '\n';
 
 		printErrorLine(ss.str());
 	}
@@ -100,7 +100,7 @@ public:
 	void print() const override {
 		std::stringstream ss;
 		ss << "Expect function definition or variable declaration,";
-		ss << " but got: " << tokenToString(m_tokinfo.m_tok) << std::endl;
+		ss << " but got: " << tokenToString(m_tokinfo.m_tok) << '\n';
 
 		printErrorLine(ss.str());
 	}

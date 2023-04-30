@@ -20,7 +20,7 @@ int main(int argc, const char* argv[]) {
 	cout << "\n";
 	TokenStream tokenStream(preprocess);
 	tokenStream.Dump();
-	cout << '\n';
+	cout << "\n\n";
 	Parser parser(tokenStream);
 	parser.parse();
 	parser.Dump();

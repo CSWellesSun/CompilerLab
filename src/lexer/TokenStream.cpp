@@ -209,9 +209,6 @@ void TokenStream::tokenize() {
 			m_error = !tokenizeString();
 			break;
 		default: {
-			if (*m_striter == '/' && (*(m_striter + 1) == '*' || *(m_striter + 1) == '/')) {
-				m_error = !skipAnnotation();
-			}
 			if (isalus(*m_striter)) {
 				/* keyword or identifier */
 				tokenizeKeywordIdent();
@@ -259,6 +256,10 @@ bool TokenStream::tokenizeNumber() {
 				// Decimal
 				std::stoll(val);
 			}
+			/* std::stoll will throw except std::invalid_argument 
+			   if no conversion could be performed; and 
+			   throw std::out_of_range if the converted value would fall 
+			   out of the range of the result type. */
 		} catch (...) {
 			LOG_WARNING("Cannot tokenize the number.");
 			res = false;
