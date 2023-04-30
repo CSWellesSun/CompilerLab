@@ -3,6 +3,7 @@
 #include <corecrt.h>
 #include <exception>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -35,10 +36,17 @@ protected:
 		size_t idx = m_tokinfo.m_loc.m_line->lineNumber;
 		size_t start = m_tokinfo.m_loc.m_start;
 		size_t end = m_tokinfo.m_loc.m_end;
+		std::shared_ptr<Line> include = m_tokinfo.m_loc.m_line->includeLine;
 
 		// error:
 		std::cout << "╭─ " << DARKRED << "ERROR" << RESET;
 		std::cout << " In file " << filename << ", line " << idx << std::endl;
+
+		// include:
+		while (include != nullptr) {
+			std::cout << "│        included from " << include->fileName << ", line " << include->lineNumber << std::endl;
+			include = include->includeLine;
+		}
 
 		// line:
 		std::string head = "╰─ " + std::to_string(idx) + " ";
