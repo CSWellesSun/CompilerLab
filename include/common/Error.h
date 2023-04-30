@@ -2,12 +2,13 @@
 
 #include <corecrt.h>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <functional>
+
 
 #include "Defs.h"
 #include "lexer/Token.h"
@@ -31,7 +32,7 @@ public:
 	void print() const {};
 
 protected:
-	void printErrorLine(std::string msg = "") const {
+	void printErrorLine(std::string msg = "", std::string shortMsg = "") const {
 		std::string filename = m_tokinfo.m_loc.m_line->fileName;
 		std::string line = m_tokinfo.m_loc.m_line->source;
 		size_t idx = m_tokinfo.m_loc.m_line->lineNumber;
@@ -40,29 +41,33 @@ protected:
 		std::shared_ptr<Line> include = m_tokinfo.m_loc.m_line->includeLine;
 
 		// error:
-		std::cout << "╭─ " << DARKRED << "ERROR" << RESET;
-		std::cout << " In file " << filename << ", line " << idx << std::endl;
+		std::cout << DARKRED << "ERROR: " << RESET << msg;
+		std::string head = std::to_string(idx);
+		std::cout << DARKGRAY << std::string(head.length() + 1, ' ') << "╭─ " << RESET << GRAY << "[" << RESET
+				  << filename << ":" << idx << ":" << start << GRAY << "]" << RESET;
 
 		// include:
 		while (include != nullptr) {
-			std::cout << "│        included from " << include->fileName << ", line " << include->lineNumber << std::endl;
+			std::cout << GRAY << " -> " << RESET << GRAY << "[" << RESET << include->fileName << ":"
+					  << include->lineNumber << GRAY << "]" << RESET;
 			include = include->includeLine;
 		}
+		std::cout << std::endl;
 
 		// line:
-		std::string head = "╰─ " + std::to_string(idx) + " ";
-		std::cout << head;
-		std::cout << GRAY << line.substr(0, start) << RESET << DARKRED << line.substr(start, end - start) << RESET
-				  << GRAY << line.substr(end) << RESET;
+		std::cout << DARKGRAY << head << " │ " << RESET;
+		std::cout << line.substr(0, start) << DARKRED << line.substr(start, end - start) << RESET << line.substr(end);
 
 		// message:
-		head = std::string(head.length() - 4, ' ');
-		std::cout << head;
+		std::cout << DARKGRAY << std::string(head.length(), ' ') << " · ";
 		for (size_t i = 0; i < start; i++) {
 			std::cout << " ";
 		}
-		std::cout << "╰─ ";
-		std::cout << DARKGREEN << msg << RESET << std::endl;
+		std::cout << RESET << RED << "╰─ " << RESET;
+		std::cout << shortMsg;
+
+		// end:
+		std::cout << DARKGRAY << std::string(head.length(), ' ') << "─╯ " << RESET << std::endl;
 	}
 
 	TokenInfo m_tokinfo;
@@ -82,13 +87,25 @@ public:
 
 	void print() const override {
 		std::stringstream ss;
-		ss << "Expect token:";
-		for (auto tok: m_expectTok) {
-			ss << ' ' << tokenToString(tok);
-		}
-		ss << ", but got: " << tokenToString(m_tokinfo.m_tok) << '\n';
+		std::string shortMsg;
 
-		printErrorLine(ss.str());
+		ss << "Unexpected " << RED << tokenToString(m_tokinfo.m_tok) << RESET;
+		shortMsg = ss.str() + "\n";
+		ss << " while parsing pattern, expected ";
+		if (m_expectTok.size() == 1) {
+			ss << BLUE << tokenToString(m_expectTok[0]) << RESET;
+		} else {
+			ss << " one of ";
+			for (auto tok: m_expectTok) {
+				ss << BLUE << tokenToString(tok) << RESET;
+				if (tok != m_expectTok.back()) {
+					ss << ", ";
+				}
+			}
+		}
+		ss << "\n";
+
+		printErrorLine(ss.str(), shortMsg);
 	}
 
 private:
@@ -103,7 +120,7 @@ public:
 		ss << "Expect function definition or variable declaration,";
 		ss << " but got: " << tokenToString(m_tokinfo.m_tok) << '\n';
 
-		printErrorLine(ss.str());
+		printErrorLine(ss.str(), ss.str());
 	}
 };
 
