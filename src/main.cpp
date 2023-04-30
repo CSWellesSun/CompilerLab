@@ -16,8 +16,10 @@ int main(int argc, const char* argv[]) {
 #endif
 	auto input = argv[1];
 	Preprocess preprocess(input);
+	preprocess.Dump();
+	cout << "\n";
 	TokenStream tokenStream(preprocess);
-	tokenStream.dump();
+	tokenStream.Dump();
 	cout << "\n\n";
 	Parser parser(tokenStream);
 	parser.parse();
