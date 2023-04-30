@@ -15,8 +15,9 @@ public:
 	Parser(TokenStream& source): m_source(source) {}
 	void parse();
 	void Dump() const {
-		if (m_root)
-			m_root->Dump();
+		if (m_root) {
+			m_root->Dump(0, 0);
+		}
 	}
 
 private:

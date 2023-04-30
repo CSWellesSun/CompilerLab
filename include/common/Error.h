@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <functional>
 
 #include "Defs.h"
 #include "lexer/Token.h"
