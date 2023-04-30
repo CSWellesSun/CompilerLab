@@ -1,30 +1,25 @@
 #pragma once
 
+#include "CharStream.h"
+#include <filesystem>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace minisolc {
 
-struct PreprocessFile {
-	std::string m_filename;
-	std::string m_charstream;
-};
-
 class Preprocess {
 public:
-	Preprocess(const std::string& filename): m_filename(filename){
-        preprocess();
-    };
-	void preprocess();
-	std::string getFilename() const { return m_filename; };
-	std::vector<PreprocessFile> getFiles() const { return m_files; }
-	void Dump() const;
+	Preprocess(std::filesystem::path filePath) { preprocess(filePath); };
+	void preprocess(std::filesystem::path filePath, std::shared_ptr<Line> includeLine = nullptr);
+	CharStream source() const { return m_stream; }
+	void Dump() const { m_stream.Dump(); };
 
 private:
-    std::string getRelativePath(const std::string& path) const;
+	std::filesystem::path getRelativePath(std::filesystem::path path) const;
+	void processInclude(const std::string& line, std::filesystem::path parentPath, std::shared_ptr<Line> includeLine);
 
-	std::string m_filename;
-	std::vector<PreprocessFile> m_files;
+	CharStream m_stream;
 };
 
 }

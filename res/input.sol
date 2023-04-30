@@ -1,5 +1,5 @@
 contract Test {
-
+#include "test.sol"
     uint256 a;
     uint128 b = 0xDEADBEEF; /* Annotation Test. */
     string c = "hello world"; // Annotation Test.

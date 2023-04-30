@@ -12,25 +12,17 @@ namespace minisolc {
 
 class TokenStream {
 public:
-	TokenStream(Preprocess& preprocess): m_preprocess(preprocess) {
-		if (!preprocess.getFiles().empty()) {
-			m_filename = preprocess.getFiles()[0].m_filename;
-			m_source = preprocess.getFiles()[0].m_charstream;
-		} else {
-			m_filename = "";
-			m_source = "";
-		}
-		readLines();
-		m_curline = m_lines.cbegin();
+	TokenStream(Preprocess& preprocess) {
+		m_source = preprocess.source();
 		m_striter = m_source.cbegin();
-		m_line_start = m_source.cbegin();
 		tokenize();
+		addToken(Token::EOS, "");
 		mtokeniter = m_tokens.cbegin();
 	}
 
 	TokenInfo curTokInfo() const {
 		if (mtokeniter == m_tokens.cend())
-			return TokenInfo(Token::EOS, "", "", nullptr, 0, 0, 0);
+			return TokenInfo(Token::EOS, "", nullptr, 0, 0);
 		return *mtokeniter;
 	}
 
@@ -77,7 +69,7 @@ public:
 	}
 	bool eof() const { return mtokeniter == m_tokens.cend(); }
 	bool error() const { return m_error; }
-	void dump() const {
+	void Dump() const {
 		for (const auto& tokenInfo: m_tokens) {
 			std::cout << tokenInfo.m_val << " ";
 		}
@@ -89,30 +81,16 @@ private:
 	bool tokenizeNumber();
 	bool tokenizeString();
 	void skipSpace();
-	void readLines();
 	bool skipAnnotation();
 	void addToken(Token tok, std::string val) {
-		m_tokens.push_back(
-			{tok,
-			 val,
-			 m_filename,
-			 *m_curline,
-			 (size_t) (m_curline - m_lines.cbegin() + 1),
-			 (size_t) (m_striter - m_line_start),
-			 m_striter - m_line_start + val.length()});
+		m_tokens.push_back({tok, val, m_striter.line(), m_striter.linePos(), m_striter.linePos() + val.length()});
 	};
 
-	Preprocess& m_preprocess;
-	bool m_error = false;
+	/// 全局信息
+	bool m_error = false; // 是否出错
 
-	/// 当前正在处理的文件状态
-	std::string m_filename;
-	std::string m_source;
-	std::vector<std::shared_ptr<std::string>> m_lines;
-	std::vector<std::shared_ptr<std::string>>::const_iterator m_curline;
-
-	std::string::const_iterator m_line_start; // 当前行的起始位置（相对于m_source）
-	std::string::const_iterator m_striter;
+	CharStream m_source;
+	CharStream::const_iterator m_striter;
 
 	std::vector<TokenInfo> m_tokens;
 	std::vector<TokenInfo>::const_iterator mtokeniter;

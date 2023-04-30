@@ -30,9 +30,9 @@ public:
 
 protected:
 	void printErrorLine(std::string msg = "") const {
-		std::string filename = m_tokinfo.m_loc.m_filename;
-		std::string line = *(m_tokinfo.m_loc.m_line);
-		size_t idx = m_tokinfo.m_loc.m_line_idx;
+		std::string filename = m_tokinfo.m_loc.m_line->fileName;
+		std::string line = m_tokinfo.m_loc.m_line->source;
+		size_t idx = m_tokinfo.m_loc.m_line->lineNumber;
 		size_t start = m_tokinfo.m_loc.m_start;
 		size_t end = m_tokinfo.m_loc.m_end;
 
@@ -44,7 +44,7 @@ protected:
 		std::string head = "╰─ " + std::to_string(idx) + " ";
 		std::cout << head;
 		std::cout << GRAY << line.substr(0, start) << RESET << DARKRED << line.substr(start, end - start) << RESET
-				  << GRAY << line.substr(end) << RESET << std::endl;
+				  << GRAY << line.substr(end) << RESET;
 
 		// message:
 		head = std::string(head.length() - 4, ' ');
