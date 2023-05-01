@@ -1,13 +1,12 @@
 #include "parser/Parser.h"
-#include "lexer/Token.h" // for precedence()
 #include "common/Defs.h"
+#include "lexer/Token.h" // for precedence()
 #include <algorithm>
 #include <iostream>
 #include <iterator>
 #include <memory>
 #include <tuple>
 #include <vector>
-
 
 using namespace minisolc;
 
@@ -55,8 +54,8 @@ std::shared_ptr<ContractDefinition> Parser::parseContractDefinition() {
 
 std::shared_ptr<VariableDeclaration> Parser::parseVariableDeclaration(bool end) {
 	std::string name;
-	std::shared_ptr<BaseAST> type;
-	std::shared_ptr<BaseAST> expr;
+	std::shared_ptr<TypeName> type;
+	std::shared_ptr<Expression> expr;
 
 	try {
 		type = parseTypeName();
@@ -162,12 +161,12 @@ std::shared_ptr<TypeName> Parser::parseTypeName() {
 }
 
 std::shared_ptr<Block> Parser::parseBlock() {
-	std::vector<std::shared_ptr<BaseAST>> stmts;
+	std::vector<std::shared_ptr<Statement>> stmts;
 	/* {...} */
 	try {
 		expect(Token::LBrace);
 		while (!match(Token::RBrace)) {
-			std::shared_ptr<BaseAST> stmt;
+			std::shared_ptr<Statement> stmt;
 			stmt = parseStatement();
 			stmts.push_back(std::move(stmt));
 		}
@@ -179,37 +178,63 @@ std::shared_ptr<Block> Parser::parseBlock() {
 }
 
 std::shared_ptr<Statement> Parser::parseStatement() {
-	std::shared_ptr<BaseAST> child;
+	std::shared_ptr<Statement> stmt;
 	try {
-		child = parseReturn();
-		expect(Token::Semicolon);
+		if (peekCur(Token::Return)) {
+			stmt = parseReturn();
+			expect(Token::Semicolon);
+		} else if (peekCur(Token::If))
+			stmt = parseIf();
+		else if (peekCur(Token::While))
+			stmt = parseWhile();
+		else if (peekCur(Token::For))
+			stmt = parseFor();
+		else if (peekCur(Token::Do)) {
+			stmt = parseDoWhile();
+			expect(Token::Semicolon);
+		} else if (peekCur(Token::Continue)) {
+			stmt = parseContinue();
+			expect(Token::Semicolon);
+		} else if (peekCur(Token::Break)) {
+			stmt = parseBreak();
+			expect(Token::Semicolon);
+		} else if (peekCur(Token::Semicolon))
+			stmt = nullptr;
+		else if (peekCur(isType))
+			stmt = parseVariableDeclaration(true);
+		else if (peekCur(Token::LBrace))
+			stmt = parseBlock();
+		else {
+			stmt = parseExpressionStatement();
+			expect(Token::Semicolon);
+		}
 
-		return std::make_shared<Statement>(std::move(child));
+		return stmt;
 	} catch (ParseError& e) {
 		e.print();
 	};
 	return nullptr;
 }
 
-std::shared_ptr<Return> Parser::parseReturn() {
-	std::shared_ptr<BaseAST> expr;
+std::shared_ptr<ReturnStatement> Parser::parseReturn() {
+	std::shared_ptr<Expression> expr;
 
 	expect(Token::Return);
 	expr = parseExpression();
-	return std::make_shared<Return>(std::move(expr));
+	return std::make_shared<ReturnStatement>(std::move(expr));
 }
 
 std::shared_ptr<Expression> Parser::parseExpression(std::shared_ptr<Expression> const& partiallyParsedExpression) {
 	std::shared_ptr<Expression> expr = parseBinaryExpression(4, partiallyParsedExpression);
 	Token tok = curTok();
 	std::string value;
-	
-	if (isAssignmentOp(tok))
-	{
+
+	if (isAssignmentOp(tok)) {
 		// Assignment.
+		value = curVal();
 		advance(); // eat assignment operator
 		std::shared_ptr<Expression> rhs = parseExpression();
-		return std::make_shared<Assignment>(partiallyParsedExpression, value, rhs);
+		return std::make_shared<Assignment>(expr, value, rhs);
 	}
 	return expr;
 }
@@ -220,7 +245,7 @@ std::shared_ptr<Expression> Parser::parsePrimaryExpression() {
 	if (isLiteral(tok)) {
 		// literals
 		return parseLiterial();
-	} else if (tok == Token::Identifier){
+	} else if (tok == Token::Identifier) {
 		// identifier
 		value = curVal();
 		advance(); // eat;
@@ -238,15 +263,13 @@ std::shared_ptr<Expression> Parser::parsePrimaryExpression() {
 			e.print();
 		}
 	} else {
-		LOG_WARNING("Invalid character in parse primary expression.");
+		LOG_WARNING("Invalid character %s in parse primary expression.", curVal().c_str());
 	}
 	return nullptr;
 }
 
-std::shared_ptr<Expression> Parser::parseBinaryExpression(
-	int minPrecedence, 
-	std::shared_ptr<Expression> const& partiallyParsedExpression
-) {
+std::shared_ptr<Expression>
+Parser::parseBinaryExpression(int minPrecedence, std::shared_ptr<Expression> const& partiallyParsedExpression) {
 	std::shared_ptr<Expression> expr = parseUnaryExpression(partiallyParsedExpression);
 	Token tok;
 	std::string value;
@@ -267,13 +290,10 @@ std::shared_ptr<Expression> Parser::parseBinaryExpression(
 	return expr;
 }
 
-std::shared_ptr<Expression> Parser::parseUnaryExpression(
-	std::shared_ptr<Expression> const& partiallyParsedExpression
-) {
+std::shared_ptr<Expression> Parser::parseUnaryExpression(std::shared_ptr<Expression> const& partiallyParsedExpression) {
 	Token tok = curTok();
 	std::string value;
-	if (partiallyParsedExpression == nullptr && isUnaryOp(tok))
-	{
+	if (partiallyParsedExpression == nullptr && isUnaryOp(tok)) {
 		// prefix expression
 		matchGet(isUnaryOp, value);
 		std::shared_ptr<Expression> subexpr = parseUnaryExpression();
@@ -282,8 +302,7 @@ std::shared_ptr<Expression> Parser::parseUnaryExpression(
 		std::shared_ptr<Expression> subexpr = parseLeftHandSideExpression(partiallyParsedExpression);
 		tok = curTok();
 		auto isCount = [](Token tok) -> bool { return tok == Token::Inc || tok == Token::Dec; };
-		if (!isCount(tok))
-		{
+		if (!isCount(tok)) {
 			// not postfix expression
 			return subexpr;
 		}
@@ -293,12 +312,10 @@ std::shared_ptr<Expression> Parser::parseUnaryExpression(
 	}
 }
 
-std::shared_ptr<Expression> Parser::parseLeftHandSideExpression(
-	std::shared_ptr<Expression> const& partiallyParsedExpression
-) {
+std::shared_ptr<Expression>
+Parser::parseLeftHandSideExpression(std::shared_ptr<Expression> const& partiallyParsedExpression) {
 	std::shared_ptr<Expression> expr;
-	if (partiallyParsedExpression == nullptr)
-	{
+	if (partiallyParsedExpression == nullptr) {
 		expr = parsePrimaryExpression();
 	} else {
 		expr = partiallyParsedExpression;
@@ -306,13 +323,10 @@ std::shared_ptr<Expression> Parser::parseLeftHandSideExpression(
 
 	Token tok;
 	std::string value;
-	for(;;)
-	{
+	for (;;) {
 		tok = curTok();
-		switch (tok)
-		{
-		case Token::LBrack:
-		{
+		switch (tok) {
+		case Token::LBrack: {
 			/* Index range. */
 			LOG_WARNING("Not implemented.");
 			break;
@@ -323,14 +337,12 @@ std::shared_ptr<Expression> Parser::parseLeftHandSideExpression(
 			LOG_WARNING("Not implemented.");
 			break;
 		}
-		case Token::LParen:
-		{
+		case Token::LParen: {
 			/* Function call. */
 			LOG_WARNING("Not implemented.");
 			break;
 		}
-		case Token::LBrace:
-		{
+		case Token::LBrace: {
 			LOG_WARNING("Not implemented.");
 		}
 		default:
@@ -354,9 +366,6 @@ std::shared_ptr<Expression> Parser::parseLiterial() {
 			return std::make_shared<BooleanLiteral>(value);
 		case Token::Number:
 			/* Number literal. */
-			if (matchGet(isNumUnit, unit)) {
-				return std::make_shared<NumberLiteral>(value, unit);
-			}
 			return std::make_shared<NumberLiteral>(value);
 		case Token::StringLiteral:
 			/* String literal. */
@@ -370,4 +379,115 @@ std::shared_ptr<Expression> Parser::parseLiterial() {
 		e.print();
 	}
 	return nullptr;
+}
+
+std::shared_ptr<IfStatement> Parser::parseIf() {
+	std::shared_ptr<Expression> condition;
+	std::shared_ptr<Statement> thenStatement;
+	std::shared_ptr<Statement> elseStatement;
+
+	try {
+		expect(Token::If);
+		expect(Token::LParen);
+		condition = parseExpression();
+		expect(Token::RParen);
+		thenStatement = parseStatement();
+		if (curTok() == Token::Else) {
+			advance();
+			elseStatement = parseStatement();
+		}
+	} catch (ParseError& e) {
+		LOG_WARNING("Parse fails.");
+		e.print();
+	}
+	return std::make_shared<IfStatement>(condition, thenStatement, elseStatement);
+}
+
+std::shared_ptr<WhileStatement> Parser::parseWhile() {
+	std::shared_ptr<Expression> condition;
+	std::shared_ptr<Statement> body;
+
+	try {
+		expect(Token::While);
+		expect(Token::LParen);
+		condition = parseExpression();
+		expect(Token::RParen);
+		body = parseStatement();
+	} catch (ParseError& e) {
+		LOG_WARNING("Parse fails.");
+		e.print();
+	}
+	return std::make_shared<WhileStatement>(condition, body);
+}
+
+std::shared_ptr<ForStatement> Parser::parseFor() {
+	std::shared_ptr<SimpleStatement> init;
+	std::shared_ptr<Expression> condition;
+	std::shared_ptr<Expression> step;
+	std::shared_ptr<Statement> body;
+
+	try {
+		expect(Token::For);
+		expect(Token::LParen);
+		if (peekCur(isType))
+			init = parseVariableDeclaration(false);
+		else
+			init = parseExpressionStatement();
+		expect(Token::Semicolon);
+		condition = parseExpression();
+		expect(Token::Semicolon);
+		step = parseExpression();
+		expect(Token::RParen);
+		body = parseStatement();
+	} catch (ParseError& e) {
+		LOG_WARNING("Parse fails.");
+		e.print();
+	}
+	return std::make_shared<ForStatement>(init, condition, step, body);
+}
+std::shared_ptr<DoWhileStatement> Parser::parseDoWhile() {
+	std::shared_ptr<Expression> condition;
+	std::shared_ptr<Statement> body;
+
+	try {
+		expect(Token::Do);
+		body = parseStatement();
+		expect(Token::While);
+		expect(Token::LParen);
+		condition = parseExpression();
+		expect(Token::RParen);
+	} catch (ParseError& e) {
+		LOG_WARNING("Parse fails.");
+		e.print();
+	}
+	return std::make_shared<DoWhileStatement>(condition, body);
+}
+std::shared_ptr<ContinueStatement> Parser::parseContinue() {
+	try {
+		expect(Token::Continue);
+	} catch (ParseError& e) {
+		LOG_WARNING("Parse fails.");
+		e.print();
+	}
+	return std::make_shared<ContinueStatement>();
+}
+std::shared_ptr<BreakStatement> Parser::parseBreak() {
+	try {
+		expect(Token::Break);
+	} catch (ParseError& e) {
+		LOG_WARNING("Parse fails.");
+		e.print();
+	}
+	return std::make_shared<BreakStatement>();
+}
+
+std::shared_ptr<ExpressionStatement> Parser::parseExpressionStatement() {
+	std::shared_ptr<Expression> expr;
+	try {
+		expr = parseExpression();
+	} catch (ParseError& e) {
+		LOG_WARNING("Parse fails.");
+		e.print();
+	}
+	return std::make_shared<ExpressionStatement>(expr);
 }

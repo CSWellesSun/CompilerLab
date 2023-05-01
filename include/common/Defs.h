@@ -28,7 +28,11 @@
 #define RED "\033[31m"	  /* Red */
 #define GREEN "\033[32m"  /* Green */
 #define YELLOW "\033[33m" /* Yellow */
+#define BLUE "\033[34m" 
+#define MAGENTA "\033[35m" 
+#define CYAN "\033[36m" 
 #define GRAY "\033[30m"	  /* Light gray */
+#define DARKGRAY "\033[1;30m"
 #define DARKRED "\033[1;31m"
 #define DARKGREEN "\033[1;32m"
 #define DARKYELLOW "\033[1;33m"
