@@ -35,6 +35,8 @@ void Preprocess::preprocess(std::filesystem::path filePath, std::shared_ptr<Line
 			m_stream.push_back(linePtr);
 		}
 	}
+
+	LOG_INFO("Preprocess Succeeds.");
 }
 
 std::filesystem::path Preprocess::getRelativePath(std::filesystem::path path) const {

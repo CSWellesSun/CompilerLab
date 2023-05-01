@@ -93,11 +93,11 @@ public:
 		shortMsg = ss.str() + "\n";
 		ss << " while parsing pattern, expected ";
 		if (m_expectTok.size() == 1) {
-			ss << BLUE << tokenToString(m_expectTok[0]) << RESET;
+			ss << CYAN << tokenToString(m_expectTok[0]) << RESET;
 		} else {
 			ss << " one of ";
 			for (auto tok: m_expectTok) {
-				ss << BLUE << tokenToString(tok) << RESET;
+				ss << CYAN << tokenToString(tok) << RESET;
 				if (tok != m_expectTok.back()) {
 					ss << ", ";
 				}
@@ -117,10 +117,14 @@ public:
 	ContractDefinitionParseError(TokenInfo tokInfo): ParseError(tokInfo) {}
 	void print() const override {
 		std::stringstream ss;
-		ss << "Expect function definition or variable declaration,";
-		ss << " but got: " << tokenToString(m_tokinfo.m_tok) << '\n';
+		std::string shortMsg;
 
-		printErrorLine(ss.str(), ss.str());
+		ss << "Unexpected " << RED << tokenToString(m_tokinfo.m_tok) << RESET;
+		shortMsg = ss.str() + "\n";
+		ss << " while parsing pattern, expected " << CYAN << "function definition " << RESET << "or " << CYAN
+		   << "variable declaration" << RESET << "\n";
+
+		printErrorLine(ss.str(), shortMsg);
 	}
 };
 

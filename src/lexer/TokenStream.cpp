@@ -97,32 +97,32 @@ void TokenStream::tokenize() {
 			break;
 		case '>':
 			++m_striter;
-			if (m_striter != m_source.cend() && *m_striter == '=') {
-				addToken(Token::GreaterThanOrEqual, ">=");
-				++m_striter;
-			} else if (m_striter != m_source.cend() && *m_striter == '>') {
-				if (m_striter + 1 != m_source.cend() && *(m_striter + 1) == '=') {
-					if (m_striter + 2 != m_source.cend() && *(m_striter + 2) == '>') {
+			if (m_striter != m_source.cend() && *m_striter == '>') {
+				if (m_striter + 1 != m_source.cend() && *(m_striter + 1) == '>') {
+					if (m_striter + 2 != m_source.cend() && *(m_striter + 2) == '=') {
 						addToken(Token::AssignSar, ">>>=");
 						m_striter += 3;
 					} else {
-						addToken(Token::AssignShr, ">>=");
+						addToken(Token::SHR, ">>>");
 						m_striter += 2;
 					}
+				} else if (m_striter + 1 != m_source.cend() && *(m_striter + 1) == '=') {
+					addToken(Token::AssignShr, ">>=");
+					m_striter += 2;
 				} else {
 					addToken(Token::SAR, ">>");
 					++m_striter;
 				}
+			} else if (m_striter != m_source.cend() && *m_striter == '=') {
+				addToken(Token::GreaterThanOrEqual, ">=");
+				++m_striter;
 			} else {
 				addToken(Token::GreaterThan, ">");
 			}
 			break;
 		case '<':
 			++m_striter;
-			if (m_striter != m_source.cend() && *m_striter == '=') {
-				addToken(Token::LessThanOrEqual, "<=");
-				++m_striter;
-			} else if (m_striter != m_source.cend() && *m_striter == '<') {
+			if (m_striter != m_source.cend() && *m_striter == '<') {
 				if (m_striter + 1 != m_source.cend() && *(m_striter + 1) == '=') {
 					addToken(Token::AssignShl, "<<=");
 					m_striter += 2;
@@ -130,6 +130,9 @@ void TokenStream::tokenize() {
 					addToken(Token::SHL, "<<");
 					++m_striter;
 				}
+			} else if (m_striter != m_source.cend() && *m_striter == '=') {
+				addToken(Token::LessThanOrEqual, "<=");
+				++m_striter;
 			} else {
 				addToken(Token::LessThan, "<");
 			}
@@ -256,9 +259,9 @@ bool TokenStream::tokenizeNumber() {
 				// Decimal
 				std::stoll(val);
 			}
-			/* std::stoll will throw except std::invalid_argument 
-			   if no conversion could be performed; and 
-			   throw std::out_of_range if the converted value would fall 
+			/* std::stoll will throw except std::invalid_argument
+			   if no conversion could be performed; and
+			   throw std::out_of_range if the converted value would fall
 			   out of the range of the result type. */
 		} catch (...) {
 			LOG_WARNING("Cannot tokenize the number.");

@@ -93,7 +93,7 @@ private:
 	std::shared_ptr<TypeName> parseTypeName();
 	std::shared_ptr<Block> parseBlock();
 	std::shared_ptr<Statement> parseStatement();
-	std::shared_ptr<Return> parseReturn();
+	std::shared_ptr<ReturnStatement> parseReturn();
 	std::shared_ptr<Expression> parseExpression(
 		std::shared_ptr<Expression> const& partiallyParsedExpression = std::shared_ptr<Expression>()
 	);
@@ -109,7 +109,13 @@ private:
 	);
 	std::shared_ptr<Expression> parsePrimaryExpression();
 	std::shared_ptr<Expression> parseLiterial();
-	
+	std::shared_ptr<IfStatement> parseIf();
+	std::shared_ptr<WhileStatement> parseWhile();
+	std::shared_ptr<ForStatement> parseFor();
+	std::shared_ptr<DoWhileStatement> parseDoWhile();
+	std::shared_ptr<ContinueStatement> parseContinue();
+	std::shared_ptr<BreakStatement> parseBreak();
+	std::shared_ptr<ExpressionStatement> parseExpressionStatement();
 
 	TokenStream& m_source;
 	std::shared_ptr<BaseAST> m_root;
@@ -132,11 +138,22 @@ private:
 /// Int = 'int' ('8' | '16' | '32' | '64' | '128' | '256')?
 /// UInt = 'uint' ('8' | '16' | '32' | '64' | '128' | '256')?
 ///
-/// Block = '{' Statement* '}'
-/// Statement = Return ';'
-/// Return = 'return' Expression?
+// Block = '{' Statement* '}'
+// Statement = IfStatement | WhileStatement | ForStatement | Block |
+//             ( DoWhileStatement | Continue | Break | Return |
+//             SimpleStatement ) ';'
 
-// // Precedence by order (see github.com/ethereum/solidity/pull/732)
+// ExpressionStatement = Expression
+// IfStatement = 'if' '(' Expression ')' Statement ( 'else' Statement )?
+// WhileStatement = 'while' '(' Expression ')' Statement
+// SimpleStatement = VariableDefinition | ExpressionStatement
+// ForStatement = 'for' '(' (SimpleStatement)? ';' (Expression)? ';' (ExpressionStatement)? ')' Statement
+// DoWhileStatement = 'do' Statement 'while' '(' Expression ')'
+// Continue = 'continue'
+// Break = 'break'
+// Return = 'return' Expression?
+// VariableDefinition = TypeName Identifier ('=' Expression)?
+
 // Expression
 //   = Expression ('++' | '--')
 //   | NewExpression
@@ -165,9 +182,7 @@ private:
 ///                   | StringLiteral
 ///                   | Identifier
 /// BooleanLiteral = 'true' | 'false'
-/// NumberLiteral = ( HexNumber | DecimalNumber ) (' ' NumberUnit)?
-/// NumberUnit = 'wei' | 'szabo' | 'finney' | 'ether'
-///            | 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'years'
+/// NumberLiteral = ( HexNumber | DecimalNumber )
 /// StringLiteral = '"' ([^"\r\n\\] | '\\' .)* '"'
 /// Identifier = [a-zA-Z_] [a-zA-Z_0-9]*
 /// @}
