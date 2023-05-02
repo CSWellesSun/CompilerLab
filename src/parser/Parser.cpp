@@ -328,18 +328,33 @@ Parser::parseLeftHandSideExpression(std::shared_ptr<Expression> const& partially
 		switch (tok) {
 		case Token::LBrack: {
 			/* Index range. */
-			LOG_WARNING("Not implemented.");
+			advance();
+			std::shared_ptr<Expression> index = parseExpression();
+			expect(Token::RBrack);
+			expr = std::make_shared<IndexAccess>(expr, index);	
 			break;
 		}
 		case Token::Period: /* . */
 		{
 			/* Access structure members. */
-			LOG_WARNING("Not implemented.");
+			advance();
+			matchGet(Token::Identifier, value);
+			expr = std::make_shared<MemberAccess>(expr, value);
 			break;
 		}
 		case Token::LParen: {
 			/* Function call. */
-			LOG_WARNING("Not implemented.");
+			advance();
+			std::vector<std::shared_ptr<Expression>> args;
+			if (curTok() != Token::RParen) {
+				args.push_back(parseExpression());
+				while (curTok() == Token::Comma) {
+					advance();
+					args.push_back(parseExpression());
+				}
+			}
+			expect(Token::RParen);
+			expr = std::make_shared<FunctionCall>(expr, args);
 			break;
 		}
 		case Token::LBrace: {

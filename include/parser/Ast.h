@@ -574,7 +574,7 @@ public:
 
 class ExpressionStatement: public SimpleStatement {
 public:
-	ExpressionStatement(std::shared_ptr<Expression> expr) : m_expr(std::move(expr)) {}
+	ExpressionStatement(std::shared_ptr<Expression> expr): m_expr(std::move(expr)) {}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -589,5 +589,92 @@ public:
 private:
 	std::shared_ptr<Expression> m_expr;
 };
+
+class IndexAccess: public Expression {
+public:
+	IndexAccess(std::shared_ptr<Expression> expr, std::shared_ptr<Expression> index)
+		: m_expr(std::move(expr)), m_index(std::move(index)) {}
+
+	void Dump(size_t depth, size_t mask) const override {
+		printIndent(depth, mask);
+		std::cout << astColor(depth) << "IndexAccessAST" << RESET << std::endl;
+
+		mask = set(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "expr: " << std::endl;
+
+		m_expr->Dump(depth + 2, mask);
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "index: " << std::endl;
+
+		m_index->Dump(depth + 2, mask);
+	}
+
+private:
+	std::shared_ptr<Expression> m_expr;
+	std::shared_ptr<Expression> m_index;
+};
+
+class FunctionCall: public Expression {
+public:
+	FunctionCall(std::shared_ptr<Expression> expr, std::vector<std::shared_ptr<Expression>> args)
+		: m_expr(std::move(expr)), m_args(std::move(args)) {}
+
+	void Dump(size_t depth, size_t mask) const override {
+		printIndent(depth, mask);
+		std::cout << astColor(depth) << "FunctionCallAST" << RESET << std::endl;
+
+		if (!m_args.empty())
+			mask = set(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "expr: " << std::endl;
+
+		m_expr->Dump(depth + 2, mask);
+
+		if (!m_args.empty()) {
+			mask = unset(mask, depth + 1);
+			printIndent(depth + 1, mask);
+			std::cout << "args: " << std::endl;
+			mask = set(mask, depth + 2);
+			for (const auto& arg: m_args) {
+				if (arg == m_args.back())
+					mask = unset(mask, depth + 2);
+				arg->Dump(depth + 2, mask);
+			}
+		}
+	}
+
+private:
+	std::shared_ptr<Expression> m_expr;
+	std::vector<std::shared_ptr<Expression>> m_args;
+};
+
+class MemberAccess: public Expression {
+public:
+	MemberAccess(std::shared_ptr<Expression> expr, std::string member)
+		: m_expr(std::move(expr)), m_member(std::move(member)) {}
+
+	void Dump(size_t depth, size_t mask) const override {
+		printIndent(depth, mask);
+		std::cout << astColor(depth) << "MemberAccessAST" << RESET << std::endl;
+
+		mask = set(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "expr: " << std::endl;
+
+		m_expr->Dump(depth + 2, mask);
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "member: " << m_member << std::endl;
+	}
+
+private:
+	std::shared_ptr<Expression> m_expr;
+	std::string m_member;
+};
+
 
 }

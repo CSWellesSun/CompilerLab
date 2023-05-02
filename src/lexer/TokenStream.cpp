@@ -211,6 +211,10 @@ void TokenStream::tokenize() {
 		case '\"':
 			m_error = !tokenizeString();
 			break;
+		case '.':
+			++m_striter;
+			addToken(Token::Period, ".");
+			break;
 		default: {
 			if (isalus(*m_striter)) {
 				/* keyword or identifier */

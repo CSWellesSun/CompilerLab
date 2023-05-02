@@ -22,7 +22,7 @@ contract Test {
         do {
             a += 3;
         } while (a < 3); 
-        uint256 a = 3;
+        uint256 a = f(3, 4)[2].b;
         return 100;
     }
 }
