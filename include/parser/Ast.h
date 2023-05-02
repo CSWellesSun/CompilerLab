@@ -2,7 +2,6 @@
 
 #include "common/Defs.h"
 #include "lexer/Token.h"
-#include <corecrt.h>
 #include <iomanip>
 #include <iostream>
 #include <memory>

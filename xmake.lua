@@ -8,6 +8,11 @@ target("compiler")
     if is_plat("windows") then
         add_toolchains("gcc") -- 默认clang，windows环境下使用gcc
     end
+    if is_plat("macosx") then
+        add_toolchains("clang") 
+        -- add_cxflags("-I/Library/Developer/CommandLineTools/usr/include/c++/v1")
+        add_cxflags("-Wno-unused-parameter")
+    end
     add_cxxflags("-Wall", "-Wextra", "-Werror", "-Wno-unused")
     set_languages("c++17")
     
