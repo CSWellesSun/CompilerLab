@@ -60,31 +60,10 @@ protected:
 
 class SourceUnit: public BaseAST {
 public:
-	SourceUnit(std::shared_ptr<BaseAST> subnode): m_subnode(std::move(subnode)) {}
+	SourceUnit(std::vector<std::shared_ptr<BaseAST>> subnodes): m_subnodes(std::move(subnodes)) {}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "SourceUnitAST" << RESET << std::endl;
-		if (m_subnode) {
-			printIndent(depth + 1, mask);
-			std::cout << "child:" << std::endl;
-			m_subnode->Dump(depth + 2, mask);
-		}
-	}
-
-private:
-	std::shared_ptr<BaseAST> m_subnode;
-};
-
-class ContractDefinition: public Declaration, public BaseAST {
-public:
-	ContractDefinition(std::string name, std::vector<std::shared_ptr<BaseAST>> subnodes)
-		: Declaration(name), m_subnodes(std::move(subnodes)) {}
-	void Dump(size_t depth, size_t mask) const override {
-		printIndent(depth, mask);
-		std::cout << astColor(depth) << "ContractDefinitionAST" << RESET << std::endl;
-
-		printIndent(depth + 1, set(mask, depth + 1));
-		std::cout << "name: " << m_name << std::endl;
 
 		if (!m_subnodes.empty()) {
 			printIndent(depth + 1, mask);
@@ -102,13 +81,13 @@ private:
 	std::vector<std::shared_ptr<BaseAST>> m_subnodes;
 };
 
-class VariableDeclaration: public Declaration, public SimpleStatement {
+class VariableDefinition: public Declaration, public SimpleStatement {
 public:
-	VariableDeclaration(std::string name, std::shared_ptr<TypeName> type, std::shared_ptr<Expression> expr)
+	VariableDefinition(std::string name, std::shared_ptr<TypeName> type, std::shared_ptr<Expression> expr)
 		: Declaration(name, std::move(type)), m_expr(std::move(expr)) {}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
-		std::cout << astColor(depth) << "VariableDeclarationAST" << RESET << std::endl;
+		std::cout << astColor(depth) << "VariableDefinitionAST" << RESET << std::endl;
 
 		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
@@ -185,25 +164,22 @@ public:
 	FunctionDefinition(
 		std::string name,
 		std::shared_ptr<ParameterList> param_list,
-		StateMutability state_mut,
 		Visibility visibility,
 		std::shared_ptr<TypeName> return_type,
 		std::shared_ptr<Block> block)
-		: Declaration(name, std::move(return_type)), m_param(std::move(param_list)), m_state(state_mut),
-		  m_visibility(visibility), m_block(std::move(block)) {}
+		: Declaration(name, std::move(return_type)), m_param(std::move(param_list)), m_visibility(visibility),
+		  m_block(std::move(block)) {}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "FuncDefAST" << RESET << std::endl;
 
 		mask = set(mask, depth + 1);
-		printIndent(depth + 1, mask);
-		std::cout << "params: " << std::endl;
-
-		m_param->Dump(depth + 2, mask);
-
-		printIndent(depth + 1, mask);
-		std::cout << "state mutability: " << stateMutabilityToString(m_state) << std::endl;
+		if (m_param) {
+			printIndent(depth + 1, mask);
+			std::cout << "params: " << std::endl;
+			m_param->Dump(depth + 2, mask);
+		}
 
 		if (m_type) {
 			printIndent(depth + 1, mask);
@@ -223,7 +199,6 @@ public:
 
 private:
 	std::shared_ptr<ParameterList> m_param;
-	StateMutability m_state;
 	Visibility m_visibility;
 	std::shared_ptr<Block> m_block;
 };
@@ -573,7 +548,7 @@ public:
 
 class ExpressionStatement: public SimpleStatement {
 public:
-	ExpressionStatement(std::shared_ptr<Expression> expr) : m_expr(std::move(expr)) {}
+	ExpressionStatement(std::shared_ptr<Expression> expr): m_expr(std::move(expr)) {}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -588,5 +563,92 @@ public:
 private:
 	std::shared_ptr<Expression> m_expr;
 };
+
+class IndexAccess: public Expression {
+public:
+	IndexAccess(std::shared_ptr<Expression> expr, std::shared_ptr<Expression> index)
+		: m_expr(std::move(expr)), m_index(std::move(index)) {}
+
+	void Dump(size_t depth, size_t mask) const override {
+		printIndent(depth, mask);
+		std::cout << astColor(depth) << "IndexAccessAST" << RESET << std::endl;
+
+		mask = set(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "expr: " << std::endl;
+
+		m_expr->Dump(depth + 2, mask);
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "index: " << std::endl;
+
+		m_index->Dump(depth + 2, mask);
+	}
+
+private:
+	std::shared_ptr<Expression> m_expr;
+	std::shared_ptr<Expression> m_index;
+};
+
+class FunctionCall: public Expression {
+public:
+	FunctionCall(std::shared_ptr<Expression> expr, std::vector<std::shared_ptr<Expression>> args)
+		: m_expr(std::move(expr)), m_args(std::move(args)) {}
+
+	void Dump(size_t depth, size_t mask) const override {
+		printIndent(depth, mask);
+		std::cout << astColor(depth) << "FunctionCallAST" << RESET << std::endl;
+
+		if (!m_args.empty())
+			mask = set(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "expr: " << std::endl;
+
+		m_expr->Dump(depth + 2, mask);
+
+		if (!m_args.empty()) {
+			mask = unset(mask, depth + 1);
+			printIndent(depth + 1, mask);
+			std::cout << "args: " << std::endl;
+			mask = set(mask, depth + 2);
+			for (const auto& arg: m_args) {
+				if (arg == m_args.back())
+					mask = unset(mask, depth + 2);
+				arg->Dump(depth + 2, mask);
+			}
+		}
+	}
+
+private:
+	std::shared_ptr<Expression> m_expr;
+	std::vector<std::shared_ptr<Expression>> m_args;
+};
+
+class MemberAccess: public Expression {
+public:
+	MemberAccess(std::shared_ptr<Expression> expr, std::string member)
+		: m_expr(std::move(expr)), m_member(std::move(member)) {}
+
+	void Dump(size_t depth, size_t mask) const override {
+		printIndent(depth, mask);
+		std::cout << astColor(depth) << "MemberAccessAST" << RESET << std::endl;
+
+		mask = set(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "expr: " << std::endl;
+
+		m_expr->Dump(depth + 2, mask);
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "member: " << m_member << std::endl;
+	}
+
+private:
+	std::shared_ptr<Expression> m_expr;
+	std::string m_member;
+};
+
 
 }
