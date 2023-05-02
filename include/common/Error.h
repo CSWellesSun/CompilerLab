@@ -1,6 +1,5 @@
 #pragma once
 
-#include <corecrt.h>
 #include <exception>
 #include <functional>
 #include <iostream>
