@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace minisolc {
 
@@ -18,8 +19,10 @@ public:
 private:
 	std::filesystem::path getRelativePath(std::filesystem::path path) const;
 	void processInclude(const std::string& line, std::filesystem::path parentPath, std::shared_ptr<Line> includeLine);
+	void processDefine(const std::string& line);
 
 	CharStream m_stream;
+	std::map<std::string, std::string> m_defines;
 };
 
 }

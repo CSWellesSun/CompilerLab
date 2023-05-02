@@ -1,5 +1,6 @@
 #include "preprocess/Preprocess.h"
 #include "common/Defs.h"
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -27,11 +28,20 @@ void Preprocess::preprocess(std::filesystem::path filePath, std::shared_ptr<Line
 	std::string line;
 	std::stringstream ss(content);
 	while (getline(ss, line, '\n')) {
-		std::shared_ptr<Line> linePtr
+			std::shared_ptr<Line> linePtr
 			= std::make_shared<Line>(line + "\n", ++lineNumber, getRelativePath(filePath).string(), includeLine);
 		if (line.find("#include") == 0) {
 			processInclude(line, dirPath, linePtr);
+		} else if (line.find("#define") == 0) {
+			processDefine(line);
 		} else {
+			for (const auto& define : m_defines) {
+				size_t pos = linePtr->source.find(define.first);
+				while (pos != std::string::npos) {
+					linePtr->source.replace(pos, define.first.length(), define.second);
+					pos = linePtr->source.find(define.first, pos + define.second.length());
+				}
+			}
 			m_stream.push_back(linePtr);
 		}
 	}
@@ -60,4 +70,17 @@ void Preprocess::processInclude(
 	std::string filename = line.substr(pos + 1, rightpos - pos - 1);
 	std::filesystem::path filePath = parentPath / filename;
 	preprocess(filePath, includeLine);
+}
+
+void Preprocess::processDefine(const std::string& line) {
+	std::stringstream ss(line);
+	std::string keyword, key, value;
+
+	ss >> keyword >> key >> value;
+
+	if (keyword == "#define" && !key.empty() && !value.empty()) {
+		m_defines[key] = value;
+	} else {
+		LOG_WARNING("Invalid #define format %s.", line.c_str());
+	}
 }
