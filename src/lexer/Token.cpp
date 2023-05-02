@@ -53,30 +53,6 @@ char const* minisolc::tokenToString(Token tok) {
 	}
 }
 
-StateMutability minisolc::stateMutabilityByName(std::string _name) {
-	if (_name == "pure")
-		return StateMutability::Pure;
-	else if (_name == "view")
-		return StateMutability::View;
-	else if (_name == "payable")
-		return StateMutability::Payable;
-	else
-		return StateMutability::Nonpayable;
-}
-
-char const* minisolc::stateMutabilityToString(StateMutability _state) {
-	switch (_state) {
-	case StateMutability::Pure:
-		return "pure";
-	case StateMutability::View:
-		return "view";
-	case StateMutability::Payable:
-		return "payable";
-	default:
-		return "nonpayable";
-	}
-}
-
 /// TODO: 需要加上Erro相关的处理
 Visibility minisolc::visibilityByName(std::string _name) {
 	if (_name == "external")

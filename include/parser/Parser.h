@@ -4,7 +4,7 @@
 // #include <tuple>
 #include <functional>
 
-#include "AST.h"
+#include "Ast.h"
 #include "lexer/TokenStream.h"
 #include "common/Error.h"
 
@@ -22,28 +22,20 @@ public:
 
 private:
 	bool peekCur(Token tok) {
-		if (curTok() == Token::EOS)
-			return false;
 		bool res = curTok() == tok;
 		return res;
 	}
 	bool peekCur(std::function<bool(Token)> func) {
-		if (curTok() == Token::EOS)
-			return false;
 		bool res = func(curTok());
 		return res;
 	}
 	bool match(Token tok) {
-		if (curTok() == Token::EOS)
-			return false;
 		bool res = curTok() == tok;
 		if (res)
 			advance();
 		return res;
 	}
 	bool match(std::function<bool(Token)> func) {
-		if (curTok() == Token::EOS)
-			return false;
 		bool res = func(curTok());
 		if (res)
 			advance();
@@ -86,8 +78,7 @@ private:
 	bool eof() const { return m_source.curTok() == Token::EOS; }
 
 	std::shared_ptr<SourceUnit> parseSourceUnit();
-	std::shared_ptr<ContractDefinition> parseContractDefinition();
-	std::shared_ptr<VariableDeclaration> parseVariableDeclaration(bool end);
+	std::shared_ptr<VariableDefinition> parseVariableDefinition();
 	std::shared_ptr<FunctionDefinition> parseFunctionDefinition();
 	std::shared_ptr<ParameterList> parseParameterList();
 	std::shared_ptr<TypeName> parseTypeName();
@@ -125,16 +116,14 @@ private:
 
 /// @{
 /// @name ENBF
-/// SourceUnit = ContractDefinition
-/// ContractDefinition = 'contract' Identifier '{' ContractPart* '}'
-/// ContractPart = StateVariableDeclaration | FunctionDefinition
-/// StateVariableDeclaration = TypeName Identifier ('=' Expression)? ';'
-/// FunctionDefinition = 'function' Identifier ParameterList ('pure' | 'view' | 'payable' | 'external' | 'public' |
-/// 'internal' | 'private')* ('returns' TypeName)? Block
+/// SourceUnit = (VariableDefinition ';' | FunctionDefinition )*
+/// VariableDefinition = TypeName Identifier ('=' Expression)? 
+/// FunctionDefinition = 'function' Identifier ParameterList Visibility? ('returns' TypeName)? Block
+/// Visibility = 'public' | 'private' | 'protected'
 ///
 /// ParameterList = '(' (TypeName Identifier (',' TypeName Identifier)*)? ')'
 /// TypeName = ElementaryTypeName
-/// ElementaryTypeName = 'address' | 'bool' | 'string' | 'var' | Int | Uint
+/// ElementaryTypeName = 'float' | 'double' | 'bool' | 'string' | Int | Uint
 /// Int = 'int' ('8' | '16' | '32' | '64' | '128' | '256')?
 /// UInt = 'uint' ('8' | '16' | '32' | '64' | '128' | '256')?
 ///
@@ -152,7 +141,6 @@ private:
 // Continue = 'continue'
 // Break = 'break'
 // Return = 'return' Expression?
-// VariableDefinition = TypeName Identifier ('=' Expression)?
 
 // Expression
 //   = Expression ('++' | '--')
@@ -176,6 +164,13 @@ private:
 //   | Expression '?' Expression ':' Expression
 //   | Expression ('=' | '|=' | '^=' | '&=' | '<<=' | '>>=' | '+=' | '-=' | '*=' | '/=' | '%=') Expression
 //   | PrimaryExpression
+
+// FunctionCall = Expression '(' FunctionCallArguments ')'
+// FunctionCallArguments = ExpressionList?
+// ExpressionList = Expression (',' Expression)*
+
+// MemberAccess = Expression '.' Identifier
+// IndexAccess = Expression '[' Expression? ']'
 
 /// PrimaryExpression = BooleanLiteral
 ///                   | NumberLiteral

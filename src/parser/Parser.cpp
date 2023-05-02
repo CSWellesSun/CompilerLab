@@ -16,43 +16,30 @@ void Parser::parse() {
 }
 
 std::shared_ptr<SourceUnit> Parser::parseSourceUnit() {
-	try {
-		return std::make_shared<SourceUnit>(parseContractDefinition());
-	} catch (ParseError& e) {
-		e.print();
-	}
-	return nullptr;
-}
-
-std::shared_ptr<ContractDefinition> Parser::parseContractDefinition() {
-	std::string name;
 	std::vector<std::shared_ptr<BaseAST>> subnodes;
 	try {
-		expect(Token::Contract);
-		expectGet(Token::Identifier, name);
-		expect(Token::LBrace);
-		/* contract identifier { ... } */
-		while (!match(Token::RBrace)) {
+		while (!match(Token::EOS)) {
 			if (peekCur(Token::Function)) {
 				/* Function definition. */
 				subnodes.push_back(parseFunctionDefinition());
 			} else if (peekCur(isType)) {
 				/* Variable definition. */
-				subnodes.push_back(parseVariableDeclaration(true));
+				subnodes.push_back(parseVariableDefinition());
+				expect(Token::Semicolon);
 			} else {
 				LOG_WARNING("Expect function definition or variable declaration!");
 				throw ContractDefinitionParseError(curTokInfo());
 				break;
 			}
 		}
-		return std::make_shared<ContractDefinition>(name, std::move(subnodes));
+		return std::make_shared<SourceUnit>(std::move(subnodes));
 	} catch (ParseError& e) {
 		e.print();
 	}
 	return nullptr;
 }
 
-std::shared_ptr<VariableDeclaration> Parser::parseVariableDeclaration(bool end) {
+std::shared_ptr<VariableDefinition> Parser::parseVariableDefinition() {
 	std::string name;
 	std::shared_ptr<TypeName> type;
 	std::shared_ptr<Expression> expr;
@@ -63,10 +50,8 @@ std::shared_ptr<VariableDeclaration> Parser::parseVariableDeclaration(bool end) 
 		if (match(Token::Assign)) {
 			expr = parseExpression();
 		}
-		if (end)
-			expect(Token::Semicolon);
 
-		return std::make_shared<VariableDeclaration>(name, std::move(type), std::move(expr));
+		return std::make_shared<VariableDefinition>(name, std::move(type), std::move(expr));
 	} catch (ParseError& e) {
 		e.print();
 	}
@@ -75,7 +60,6 @@ std::shared_ptr<VariableDeclaration> Parser::parseVariableDeclaration(bool end) 
 
 std::shared_ptr<FunctionDefinition> Parser::parseFunctionDefinition() {
 	std::string name;
-	std::string state;
 	std::string vis;
 	std::shared_ptr<ParameterList> paramList;
 	std::shared_ptr<TypeName> returnType;
@@ -97,14 +81,8 @@ std::shared_ptr<FunctionDefinition> Parser::parseFunctionDefinition() {
 		expectGet(Token::Identifier, name);
 		paramList = parseParameterList();
 
-		while (true) {
-			if (matchGet(isStateMutability, vis)) {
-				stateMutability = stateMutabilityByName(vis);
-			} else if (matchGet(isVisibility, state)) {
-				visibility = visibilityByName(state);
-			} else {
-				break;
-			}
+		if (matchGet(isVisibility, vis)) {
+			visibility = visibilityByName(vis);
 		}
 
 		if (match(Token::Returns)) {
@@ -115,8 +93,8 @@ std::shared_ptr<FunctionDefinition> Parser::parseFunctionDefinition() {
 
 		block = parseBlock();
 
-		return std::make_shared<FunctionDefinition>(
-			name, std::move(paramList), stateMutability, visibility, std::move(returnType), std::move(block));
+		return std::make_shared<
+			FunctionDefinition>(name, std::move(paramList), visibility, std::move(returnType), std::move(block));
 
 	} catch (ParseError& e) {
 		e.print();
@@ -133,7 +111,7 @@ std::shared_ptr<ParameterList> Parser::parseParameterList() {
 			return nullptr;
 		} else {
 			while (true) {
-				params.push_back(parseVariableDeclaration(false));
+				params.push_back(parseVariableDefinition());
 				if (match(Token::Comma)) {
 					continue;
 				} else {
@@ -200,9 +178,10 @@ std::shared_ptr<Statement> Parser::parseStatement() {
 			expect(Token::Semicolon);
 		} else if (peekCur(Token::Semicolon))
 			stmt = nullptr;
-		else if (peekCur(isType))
-			stmt = parseVariableDeclaration(true);
-		else if (peekCur(Token::LBrace))
+		else if (peekCur(isType)) {
+			stmt = parseVariableDefinition();
+			expect(Token::Semicolon);
+		} else if (peekCur(Token::LBrace))
 			stmt = parseBlock();
 		else {
 			stmt = parseExpressionStatement();
@@ -331,7 +310,7 @@ Parser::parseLeftHandSideExpression(std::shared_ptr<Expression> const& partially
 			advance();
 			std::shared_ptr<Expression> index = parseExpression();
 			expect(Token::RBrack);
-			expr = std::make_shared<IndexAccess>(expr, index);	
+			expr = std::make_shared<IndexAccess>(expr, index);
 			break;
 		}
 		case Token::Period: /* . */
@@ -445,7 +424,7 @@ std::shared_ptr<ForStatement> Parser::parseFor() {
 		expect(Token::For);
 		expect(Token::LParen);
 		if (peekCur(isType))
-			init = parseVariableDeclaration(false);
+			init = parseVariableDefinition();
 		else
 			init = parseExpressionStatement();
 		expect(Token::Semicolon);

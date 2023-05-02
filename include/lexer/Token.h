@@ -140,30 +140,15 @@ namespace minisolc {
 	K(Virtual, "virtual", 0)                                                               \
 	K(While, "while", 0)                                                                   \
                                                                                            \
-	/* Ether subdenominations */                                                           \
-	K(SubWei, "wei", 0)                                                                    \
-	K(SubGwei, "gwei", 0)                                                                  \
-	K(SubEther, "ether", 0)                                                                \
-	K(SubSecond, "seconds", 0)                                                             \
-	K(SubMinute, "minutes", 0)                                                             \
-	K(SubHour, "hours", 0)                                                                 \
-	K(SubDay, "days", 0)                                                                   \
-	K(SubWeek, "weeks", 0)                                                                 \
-	K(SubYear, "years", 0)                                                                 \
 	/* type keywords*/                                                                     \
 	K(Int, "int", 0)                                                                       \
 	K(UInt, "uint", 0)                                                                     \
-	K(Bytes, "bytes", 0)                                                                   \
 	K(String, "string", 0)                                                                 \
-	K(Address, "address", 0)                                                               \
 	K(Bool, "bool", 0)                                                                     \
-	K(Fixed, "fixed", 0)                                                                   \
-	K(UFixed, "ufixed", 0)                                                                 \
+	K(Float, "float", 0)                                                                   \
+	K(Double, "double", 0)                                                                 \
 	T(IntM, "intM", 0)                                                                     \
 	T(UIntM, "uintM", 0)                                                                   \
-	T(BytesM, "bytesM", 0)                                                                 \
-	T(FixedMxN, "fixedMxN", 0)                                                             \
-	T(UFixedMxN, "ufixedMxN", 0)                                                           \
 	T(TypesEnd, nullptr, 0) /* used as type enum end marker */                             \
                                                                                            \
 	/* Literals */                                                                         \
@@ -249,15 +234,11 @@ char const* visibilityToString(Visibility _visibility);
 
 constexpr bool isType(Token tok) { return tok >= Token::Int && tok < Token::TypesEnd; }
 constexpr bool isLiteral(Token tok) { return tok >= Token::TrueLiteral && tok <= Token::CommentLiteral; }
-constexpr bool isNumUnit(Token tok) { return tok >= Token::SubWei && tok <= Token::SubYear; }
 constexpr bool isAssignmentOp(Token tok) { return tok >= Token::Assign && tok <= Token::AssignMod; }
 constexpr bool isBinaryOp(Token tok) { return tok >= Token::Comma && tok <= Token::Exp; }
 constexpr bool isUnaryOp(Token tok) { return (tok >= Token::Not && tok <= Token::Delete) || tok == Token::Sub; }
 constexpr bool isCompareOp(Token tok) { return tok >= Token::Equal && tok <= Token::GreaterThanOrEqual; }
 
-constexpr bool isStateMutability(Token tok) {
-	return tok == Token::View || tok == Token::Pure || tok == Token::Payable;
-}
 constexpr bool isVisibility(Token tok) {
 	return tok == Token::Private || tok == Token::Internal || tok == Token::Public || tok == Token::External;
 }
@@ -265,7 +246,7 @@ constexpr bool isVisibility(Token tok) {
 constexpr bool isalus(char c) { return std::isalpha(c) || c == '_'; };
 constexpr bool isalnumus(char c) { return std::isalpha(c) || std::isdigit(c) || c == '_'; };
 constexpr bool isoct(char c) { return c >= '0' && c <= '7'; };
-constexpr bool issep(char c) { return !std::isalnum(c); }
+constexpr bool issep(char c) { return !std::isalnum(c) && c != '.'; }
 
 constexpr int precedence(Token tok)
 {

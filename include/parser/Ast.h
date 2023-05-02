@@ -60,31 +60,10 @@ protected:
 
 class SourceUnit: public BaseAST {
 public:
-	SourceUnit(std::shared_ptr<BaseAST> subnode): m_subnode(std::move(subnode)) {}
+	SourceUnit(std::vector<std::shared_ptr<BaseAST>> subnodes): m_subnodes(std::move(subnodes)) {}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "SourceUnitAST" << RESET << std::endl;
-		if (m_subnode) {
-			printIndent(depth + 1, mask);
-			std::cout << "child:" << std::endl;
-			m_subnode->Dump(depth + 2, mask);
-		}
-	}
-
-private:
-	std::shared_ptr<BaseAST> m_subnode;
-};
-
-class ContractDefinition: public Declaration, public BaseAST {
-public:
-	ContractDefinition(std::string name, std::vector<std::shared_ptr<BaseAST>> subnodes)
-		: Declaration(name), m_subnodes(std::move(subnodes)) {}
-	void Dump(size_t depth, size_t mask) const override {
-		printIndent(depth, mask);
-		std::cout << astColor(depth) << "ContractDefinitionAST" << RESET << std::endl;
-
-		printIndent(depth + 1, set(mask, depth + 1));
-		std::cout << "name: " << m_name << std::endl;
 
 		if (!m_subnodes.empty()) {
 			printIndent(depth + 1, mask);
@@ -102,13 +81,13 @@ private:
 	std::vector<std::shared_ptr<BaseAST>> m_subnodes;
 };
 
-class VariableDeclaration: public Declaration, public SimpleStatement {
+class VariableDefinition: public Declaration, public SimpleStatement {
 public:
-	VariableDeclaration(std::string name, std::shared_ptr<TypeName> type, std::shared_ptr<Expression> expr)
+	VariableDefinition(std::string name, std::shared_ptr<TypeName> type, std::shared_ptr<Expression> expr)
 		: Declaration(name, std::move(type)), m_expr(std::move(expr)) {}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
-		std::cout << astColor(depth) << "VariableDeclarationAST" << RESET << std::endl;
+		std::cout << astColor(depth) << "VariableDefinitionAST" << RESET << std::endl;
 
 		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
@@ -185,25 +164,22 @@ public:
 	FunctionDefinition(
 		std::string name,
 		std::shared_ptr<ParameterList> param_list,
-		StateMutability state_mut,
 		Visibility visibility,
 		std::shared_ptr<TypeName> return_type,
 		std::shared_ptr<Block> block)
-		: Declaration(name, std::move(return_type)), m_param(std::move(param_list)), m_state(state_mut),
-		  m_visibility(visibility), m_block(std::move(block)) {}
+		: Declaration(name, std::move(return_type)), m_param(std::move(param_list)), m_visibility(visibility),
+		  m_block(std::move(block)) {}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "FuncDefAST" << RESET << std::endl;
 
 		mask = set(mask, depth + 1);
-		printIndent(depth + 1, mask);
-		std::cout << "params: " << std::endl;
-
-		m_param->Dump(depth + 2, mask);
-
-		printIndent(depth + 1, mask);
-		std::cout << "state mutability: " << stateMutabilityToString(m_state) << std::endl;
+		if (m_param) {
+			printIndent(depth + 1, mask);
+			std::cout << "params: " << std::endl;
+			m_param->Dump(depth + 2, mask);
+		}
 
 		if (m_type) {
 			printIndent(depth + 1, mask);
@@ -223,7 +199,6 @@ public:
 
 private:
 	std::shared_ptr<ParameterList> m_param;
-	StateMutability m_state;
 	Visibility m_visibility;
 	std::shared_ptr<Block> m_block;
 };

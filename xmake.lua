@@ -10,7 +10,6 @@ target("compiler")
     end
     if is_plat("macosx") then
         add_toolchains("clang") 
-        -- add_cxflags("-I/Library/Developer/CommandLineTools/usr/include/c++/v1")
         add_cxflags("-Wno-unused-parameter")
     end
     add_cxxflags("-Wall", "-Wextra", "-Werror", "-Wno-unused")

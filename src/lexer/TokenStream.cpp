@@ -247,7 +247,14 @@ void TokenStream::tokenizeKeywordIdent() {
 
 bool TokenStream::tokenizeNumber() {
 	bool res = true;
-	auto right_bound = std::find_if(m_striter, m_source.cend(), [](const char ch) { return issep(ch); });
+	bool floatFlag = false;
+
+	auto right_bound = std::find_if(m_striter, m_source.cend(), [&](const char ch) { 
+		if (ch == '.') {
+			floatFlag = true;
+		}
+		return issep(ch); 
+	});
 	std::string val = std::string(m_striter, right_bound);
 	if (val.size() > 1) {
 		try {
@@ -259,9 +266,12 @@ bool TokenStream::tokenizeNumber() {
 					// Octal
 					std::stoll(val, 0, 8);
 				}
-			} else {
+			} else if (!floatFlag) {
 				// Decimal
 				std::stoll(val);
+			} else {
+				// Float
+				std::stod(val);
 			}
 			/* std::stoll will throw except std::invalid_argument
 			   if no conversion could be performed; and
