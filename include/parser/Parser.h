@@ -20,6 +20,8 @@ public:
 		}
 	}
 
+	const std::shared_ptr<BaseAST>& GetAst() const { return m_root; }
+
 private:
 	bool peekCur(Token tok) {
 		bool res = curTok() == tok;
