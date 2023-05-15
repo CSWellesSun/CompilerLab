@@ -29,7 +29,7 @@
 
 /*  for enviroment configuration,
     In linux, you can do:
-        sudo apt-get llvm
+        sudo apt-get install llvm
     and add /usr/lib/llvm-14/include/ into the INCLUDE path
 
     (Maybe you can also utilize /usr/bin/llvm-config)
