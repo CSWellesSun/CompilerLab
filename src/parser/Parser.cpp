@@ -76,23 +76,22 @@ std::shared_ptr<VariableDefinition> Parser::parseVariableDefinition() {
 }
 
 std::shared_ptr<StructDefinition> Parser::parseStructDefinition() {
-	// Partially completed.
+	// Partially completes.
 	std::string name;
 	try {
-		if (match(Token::Struct)) {
-			std::vector<std::shared_ptr<VariableDefinition>> struct_members;
-			std::shared_ptr<TypeName> type = std::make_shared<ElementaryTypeName>(Token::Struct);
-			expectGet(Token::Identifier, name);
+		expect(Token::Struct);
+		std::vector<std::shared_ptr<VariableDefinition>> struct_members;
+		std::shared_ptr<TypeName> type = std::make_shared<ElementaryTypeName>(Token::Struct);
+		expectGet(Token::Identifier, name);
 
-			if (match(Token::LBrace)) {
-				while (!match(Token::RBrace)) {
-					struct_members.push_back(parseVariableDefinition());
-					match(Token::Semicolon);
-				}
+		if (match(Token::LBrace)) {
+			while (!match(Token::RBrace)) {
+				struct_members.push_back(parseVariableDefinition());
+				match(Token::Semicolon);
 			}
-
-			return std::make_shared<StructDefinition>(name, std::move(struct_members));
 		}
+
+		return std::make_shared<StructDefinition>(name, std::move(struct_members));
 	} catch (ParseError& e) {
 		e.print();
 	}
