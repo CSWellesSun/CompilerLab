@@ -18,7 +18,9 @@ namespace minisolc {
 enum class ElementASTTypes{
 	Invalid = 0,
 	SourceUnit,
-	VariableDefinition,
+	PlainVariableDefinition,
+	ArrayDefinition,
+	StructDefinition,
 	ParameterList,
 	Block,
 	FunctionDefinition,
@@ -49,6 +51,8 @@ public:
 	virtual ~BaseAST() = default;
 
 	virtual void Dump(size_t depth, size_t mask) const {};
+
+	ElementASTTypes GetType() const { return m_ASTType; }
 
 protected:
 	void printIndent(size_t depth, size_t mask) const {
@@ -85,7 +89,8 @@ class TypeName: public BaseAST {};
 class Declaration {
 public:
 	Declaration(std::string name, std::shared_ptr<TypeName> type = nullptr): m_name(name), m_type(std::move(type)) {}
-
+	const std::string& GetName() const { return m_name; }
+	const std::shared_ptr<TypeName>& GetType() const { return m_type; }
 protected:
 	std::string m_name;
 	std::shared_ptr<TypeName> m_type;
@@ -116,15 +121,21 @@ private:
 	std::vector<std::shared_ptr<BaseAST>> m_subnodes;
 };
 
-class VariableDefinition final : public Declaration, public SimpleStatement {
+class VariableDefinition : public Declaration, public SimpleStatement {
 public:
-	VariableDefinition(std::string name, std::shared_ptr<TypeName> type, std::shared_ptr<Expression> expr)
-		: Declaration(name, std::move(type)), m_expr(std::move(expr)) {
-			m_ASTType = ElementASTTypes::VariableDefinition;
+	VariableDefinition(std::string name, std::shared_ptr<TypeName> type)
+		: Declaration(name, std::move(type)) {}
+};
+
+class PlainVariableDefinition final : public VariableDefinition {
+public:
+	PlainVariableDefinition(std::string name, std::shared_ptr<TypeName> type, std::shared_ptr<Expression> expr)
+		: VariableDefinition(name, std::move(type)), m_expr(std::move(expr)) {
+			m_ASTType = ElementASTTypes::PlainVariableDefinition;
 		}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
-		std::cout << astColor(depth) << "VariableDefinitionAST" << RESET << '\n';
+		std::cout << astColor(depth) << "PlainVariableDefinitionAST" << RESET << '\n';
 
 		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
@@ -136,12 +147,10 @@ public:
 		std::cout << "type: " << '\n';
 
 		m_type->Dump(depth + 2, mask);
-
 		if (m_expr) {
 			mask = unset(mask, depth + 1);
 			printIndent(depth + 1, mask);
 			std::cout << "expr: " << '\n';
-
 			m_expr->Dump(depth + 2, mask);
 		}
 	}
@@ -216,8 +225,10 @@ public:
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "FuncDefAST" << RESET << '\n';
-
+		
 		mask = set(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "name: " << m_name << '\n';
 		if (m_param) {
 			printIndent(depth + 1, mask);
 			std::cout << "params: " << '\n';
@@ -337,7 +348,7 @@ public:
 
 class NumberLiteral final: public PrimaryExpression {
 public:
-	NumberLiteral(std::string value, std::string unit = ""): PrimaryExpression(value), m_unit(unit) {
+	NumberLiteral(std::string value/*, std::string unit = ""*/): PrimaryExpression(value)/*, m_unit(unit)*/ {
 		m_ASTType = ElementASTTypes::NumberLiteral;
 	}
 	void Dump(size_t depth, size_t mask) const override {
@@ -348,8 +359,72 @@ public:
 		std::cout << "value: " << m_value << '\n';
 	}
 
+// private:
+// 	std::string m_unit;
+};
+
+class ArrayDefinition final : public VariableDefinition {
+public:
+	ArrayDefinition(std::string name, std::shared_ptr<TypeName> type, std::shared_ptr<Expression> size)
+		: VariableDefinition(name, std::move(type)), m_size(std::move(size)) {
+			m_ASTType = ElementASTTypes::ArrayDefinition;
+		}
+	void Dump(size_t depth, size_t mask) const override {
+		printIndent(depth, mask);
+		std::cout << astColor(depth) << "ArrayDefinitionAST" << RESET << '\n';
+
+		mask = set(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "name: " << m_name << '\n';
+
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << '\n';
+
+		m_type->Dump(depth + 2, mask);
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "size: " << '\n';
+		m_size->Dump(depth + 2, mask);
+	}
+
 private:
-	std::string m_unit;
+	std::shared_ptr<Expression> m_size;
+};
+
+class StructDefinition final: public VariableDefinition {
+public:
+	StructDefinition(std::string name, std::vector<std::shared_ptr<VariableDefinition>> memList)
+	: 	VariableDefinition(name, std::make_shared<ElementaryTypeName>(Token::Struct)),
+		m_MemList(std::move(memList)) {
+		m_ASTType = ElementASTTypes::StructDefinition;
+	}
+	void Dump(size_t depth, size_t mask) const override {
+		printIndent(depth, mask);
+		std::cout << astColor(depth) << "StructDefinitionAST" << RESET << '\n';
+
+		mask = set(mask, depth + 1);
+		if (m_MemList.empty()) {
+			mask = unset(mask, depth + 1);
+		}
+		printIndent(depth + 1, mask);
+		std::cout << "name: " << m_name << '\n';
+
+		mask = unset(mask, depth + 1);
+		if (!m_MemList.empty()) {
+			printIndent(depth + 1, mask);
+			std::cout << "members:" << '\n';
+			mask = set(mask, depth + 2);
+			for (auto iter = m_MemList.cbegin(); iter != m_MemList.cend(); ++iter) {
+				if (iter + 1 == m_MemList.cend())
+					mask = unset(mask, depth + 2);
+				(*iter)->Dump(depth + 2, mask);
+			}
+		}
+
+	}
+
+private:
+	std::vector<std::shared_ptr<VariableDefinition>> m_MemList;
 };
 
 class Assignment final: public Expression {

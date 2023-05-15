@@ -82,6 +82,7 @@ private:
 	std::shared_ptr<SourceUnit> parseSourceUnit();
 	std::shared_ptr<VariableDefinition> parseVariableDefinition();
 	std::shared_ptr<FunctionDefinition> parseFunctionDefinition();
+	std::shared_ptr<StructDefinition> parseStructDefinition();
 	std::shared_ptr<ParameterList> parseParameterList();
 	std::shared_ptr<TypeName> parseTypeName();
 	std::shared_ptr<Block> parseBlock();

@@ -26,6 +26,9 @@ std::shared_ptr<SourceUnit> Parser::parseSourceUnit() {
 				/* Variable definition. */
 				subnodes.push_back(parseVariableDefinition());
 				expect(Token::Semicolon);
+			} else if (peekCur(Token::Struct)) {
+				subnodes.push_back(parseStructDefinition());
+				expect(Token::Semicolon);
 			} else {
 				LOG_WARNING("Expect function definition or variable declaration!");
 				throw ContractDefinitionParseError(curTokInfo());
@@ -49,12 +52,52 @@ std::shared_ptr<VariableDefinition> Parser::parseVariableDefinition() {
 		expectGet(Token::Identifier, name);
 		if (match(Token::Assign)) {
 			expr = parseExpression();
-		}
+		} else if (match(Token::LBrack)) {
+			/* Array */
+			expr = parseLiterial(); // array of size 0 is not allowed.
+			if (expr->GetType() != ElementASTTypes::NumberLiteral) {
+				LOG_WARNING("Parse Array Fails!");
+				throw ParseError(curTokInfo());
+			}
+			expect(Token::RBrack);
 
-		return std::make_shared<VariableDefinition>(name, std::move(type), std::move(expr));
+			if (match(Token::Assign)) {
+				/* Initialize list. */
+				LOG_WARNING("Not implemented.");
+			}
+			return std::make_shared<ArrayDefinition>(name, std::move(type), std::move(expr));
+		}
+		/* Plain variable definition. */
+		return std::make_shared<PlainVariableDefinition>(name, std::move(type), std::move(expr));
 	} catch (ParseError& e) {
 		e.print();
 	}
+	return nullptr;
+}
+
+std::shared_ptr<StructDefinition> Parser::parseStructDefinition() {
+	// Partially completed.
+	std::string name;
+	try {
+		if (match(Token::Struct)) {
+			std::vector<std::shared_ptr<VariableDefinition>> struct_members;
+			std::shared_ptr<TypeName> type = std::make_shared<ElementaryTypeName>(Token::Struct);
+			expectGet(Token::Identifier, name);
+
+			if (match(Token::LBrace)) {
+				while (!match(Token::RBrace)) {
+					struct_members.push_back(parseVariableDefinition());
+					match(Token::Semicolon);
+				}
+			}
+
+			return std::make_shared<StructDefinition>(name, std::move(struct_members));
+		}
+	} catch (ParseError& e) {
+		e.print();
+	}
+	/* TODO: It may be necessary for the parser to store all defined structs
+	   so as to define structural variables afterwards.*/
 	return nullptr;
 }
 
@@ -180,6 +223,9 @@ std::shared_ptr<Statement> Parser::parseStatement() {
 			stmt = nullptr;
 		else if (peekCur(isType)) {
 			stmt = parseVariableDefinition();
+			expect(Token::Semicolon);
+		} else if (peekCur(Token::Struct)) {
+			stmt = parseStructDefinition();
 			expect(Token::Semicolon);
 		} else if (peekCur(Token::LBrace))
 			stmt = parseBlock();
@@ -336,9 +382,9 @@ Parser::parseLeftHandSideExpression(std::shared_ptr<Expression> const& partially
 			expr = std::make_shared<FunctionCall>(expr, args);
 			break;
 		}
-		case Token::LBrace: {
-			LOG_WARNING("Not implemented.");
-		}
+		// case Token::LBrace: {
+		// 	LOG_WARNING("Not implemented.");
+		// }
 		default:
 			return expr;
 		}
@@ -423,7 +469,7 @@ std::shared_ptr<ForStatement> Parser::parseFor() {
 	try {
 		expect(Token::For);
 		expect(Token::LParen);
-		if (peekCur(isType))
+		if (peekCur(isType) || peekCur(Token::Struct))
 			init = parseVariableDefinition();
 		else
 			init = parseExpressionStatement();
