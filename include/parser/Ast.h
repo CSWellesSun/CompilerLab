@@ -2,12 +2,9 @@
 
 #include "common/Defs.h"
 #include "lexer/Token.h"
-// #include <iomanip>
 #include <iostream>
 #include <memory>
-// #include <ostream>
 #include <string>
-// #include <type_traits>
 #include <vector>
 
 
@@ -51,8 +48,7 @@ public:
 	virtual ~BaseAST() = default;
 
 	virtual void Dump(size_t depth, size_t mask) const {};
-
-	ElementASTTypes GetType() const { return m_ASTType; }
+	ElementASTTypes GetASTType() const { return m_ASTType; }
 
 protected:
 	void printIndent(size_t depth, size_t mask) const {
@@ -90,7 +86,7 @@ class Declaration {
 public:
 	Declaration(std::string name, std::shared_ptr<TypeName> type = nullptr): m_name(name), m_type(std::move(type)) {}
 	const std::string& GetName() const { return m_name; }
-	const std::shared_ptr<TypeName>& GetType() const { return m_type; }
+	const std::shared_ptr<TypeName>& GetDeclarationType() const { return m_type; }
 protected:
 	std::string m_name;
 	std::shared_ptr<TypeName> m_type;
@@ -98,7 +94,7 @@ protected:
 
 class SourceUnit final: public BaseAST {
 public:
-	SourceUnit(std::vector<std::shared_ptr<BaseAST>> subnodes): m_subnodes(std::move(subnodes)) {
+	SourceUnit(std::vector<std::shared_ptr<BaseAST> > subnodes): m_subnodes(std::move(subnodes)) {
 		m_ASTType = ElementASTTypes::SourceUnit;
 	}
 	void Dump(size_t depth, size_t mask) const override {
@@ -117,8 +113,10 @@ public:
 		}
 	}
 
+	const auto& getSubNodes() const { return m_subnodes; } // for tranverse
+
 private:
-	std::vector<std::shared_ptr<BaseAST>> m_subnodes;
+	std::vector<std::shared_ptr<BaseAST> > m_subnodes;
 };
 
 class VariableDefinition : public Declaration, public SimpleStatement {
@@ -154,7 +152,7 @@ public:
 			m_expr->Dump(depth + 2, mask);
 		}
 	}
-
+	const auto& getVarDefExpr() const { return m_expr; }
 private:
 	std::shared_ptr<Expression> m_expr; // optional
 };
@@ -260,7 +258,7 @@ private:
 
 class ElementaryTypeName final: public TypeName {
 public:
-	ElementaryTypeName(Token type): type(type) {
+	ElementaryTypeName(Token type): m_type(type) {
 		m_ASTType = ElementASTTypes::ElementaryTypeName;
 	}
 	void Dump(size_t depth, size_t mask) const override {
@@ -268,11 +266,11 @@ public:
 		std::cout << astColor(depth) << "ElementaryTypeNameAST" << RESET << '\n';
 
 		printIndent(depth + 1, mask);
-		std::cout << "type: " << tokenToString(type) << '\n';
+		std::cout << "type: " << tokenToString(m_type) << '\n';
 	}
-
+	const Token const GetElementaryType() { return m_type; }
 private:
-	Token type;
+	Token m_type;
 };
 
 

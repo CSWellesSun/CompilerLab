@@ -55,7 +55,7 @@ std::shared_ptr<VariableDefinition> Parser::parseVariableDefinition() {
 		} else if (match(Token::LBrack)) {
 			/* Array */
 			expr = parseLiterial(); // array of size 0 is not allowed.
-			if (expr->GetType() != ElementASTTypes::NumberLiteral) {
+			if (expr->GetASTType() != ElementASTTypes::NumberLiteral) {
 				LOG_WARNING("Parse Array Fails!");
 				throw ParseError(curTokInfo());
 			}
@@ -153,6 +153,7 @@ std::shared_ptr<ParameterList> Parser::parseParameterList() {
 			return nullptr;
 		} else {
 			while (true) {
+				/* Here struct parameter is not implemented. */
 				params.push_back(parseVariableDefinition());
 				if (match(Token::Comma)) {
 					continue;
