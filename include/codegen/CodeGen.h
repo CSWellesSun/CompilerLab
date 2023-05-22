@@ -1,8 +1,8 @@
 #pragma once
 
 #include "codegen/llvmheaders.h"
-
 #include "parser/Ast.h"
+#include "common/Defs.h"
 
 #include <memory>
 #include <vector>
@@ -12,26 +12,25 @@ namespace minisolc {
 // Only a rough draft
 class CodeGenerator {
 public:
-    static llvm::LLVMContext m_llvmContext;
-    static llvm::IRBuilder<> m_IRBuilder;
-
-    CodeGenerator(const std::shared_ptr<BaseAST>& AstRoot) {
-        // generate(AstRoot);
+	CodeGenerator(const std::shared_ptr<BaseAST>& AstRoot) {
+		generate(AstRoot);
+        LOG_INFO("Codegen  Succeeds.");
+	}
+    void Dump() const {
+        m_Module->print(llvm::errs(), nullptr);
     }
-    // auto& GetModule () { return *m_Module; }
-    std::shared_ptr<llvm::Value> generate(const std::shared_ptr<BaseAST>& AstRoot);
-    llvm::Constant* GetInitValue(Token tok);
 
 private:
+    static std::unique_ptr<llvm::LLVMContext> m_Context;
+    static std::unique_ptr<llvm::IRBuilder<>> m_Builder;
+    static std::unique_ptr<llvm::Module> m_Module;
+    static std::map<std::string, llvm::Value*> m_NamedValues;
 
-    std::unique_ptr<llvm::Module> m_Module;
-    std::unique_ptr<llvm::Function> m_MainFunction;
-    std::vector<std::unique_ptr<llvm::Function> > m_Functions;
-    std::vector<std::unique_ptr<llvm::BasicBlock> > m_Blocks;
+	llvm::Value* generate(const std::shared_ptr<BaseAST>& AstRoot);
+
+	llvm::Constant* GetInitValue(Token tok);
+    llvm::Type* GetLLVMType(Token type);
 };
-
-
-
 
 
 // Further supplementation is needed

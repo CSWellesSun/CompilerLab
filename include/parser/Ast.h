@@ -10,9 +10,9 @@
 
 namespace minisolc {
 
-/* Each final AST records its own type 
+/* Each final AST records its own type
    for subsequent code generation. */
-enum class ElementASTTypes{
+enum class ElementASTTypes {
 	Invalid = 0,
 	SourceUnit,
 	PlainVariableDefinition,
@@ -47,7 +47,7 @@ class BaseAST {
 public:
 	virtual ~BaseAST() = default;
 
-	virtual void Dump(size_t depth, size_t mask) const {};
+	virtual void Dump(size_t, size_t) const {};
 	ElementASTTypes GetASTType() const { return m_ASTType; }
 
 protected:
@@ -80,13 +80,17 @@ protected:
 class Statement: public BaseAST {};
 class SimpleStatement: public Statement {};
 class Expression: public BaseAST {};
-class TypeName: public BaseAST {};
+class TypeName: public BaseAST {
+public:
+	virtual Token GetType() = 0;
+};
 
 class Declaration {
 public:
 	Declaration(std::string name, std::shared_ptr<TypeName> type = nullptr): m_name(name), m_type(std::move(type)) {}
 	const std::string& GetName() const { return m_name; }
 	const std::shared_ptr<TypeName>& GetDeclarationType() const { return m_type; }
+
 protected:
 	std::string m_name;
 	std::shared_ptr<TypeName> m_type;
@@ -94,7 +98,7 @@ protected:
 
 class SourceUnit final: public BaseAST {
 public:
-	SourceUnit(std::vector<std::shared_ptr<BaseAST> > subnodes): m_subnodes(std::move(subnodes)) {
+	SourceUnit(std::vector<std::shared_ptr<BaseAST>> subnodes): m_subnodes(std::move(subnodes)) {
 		m_ASTType = ElementASTTypes::SourceUnit;
 	}
 	void Dump(size_t depth, size_t mask) const override {
@@ -116,21 +120,20 @@ public:
 	const auto& getSubNodes() const { return m_subnodes; } // for tranverse
 
 private:
-	std::vector<std::shared_ptr<BaseAST> > m_subnodes;
+	std::vector<std::shared_ptr<BaseAST>> m_subnodes;
 };
 
-class VariableDefinition : public Declaration, public SimpleStatement {
+class VariableDefinition: public Declaration, public SimpleStatement {
 public:
-	VariableDefinition(std::string name, std::shared_ptr<TypeName> type)
-		: Declaration(name, std::move(type)) {}
+	VariableDefinition(std::string name, std::shared_ptr<TypeName> type): Declaration(name, std::move(type)) {}
 };
 
-class PlainVariableDefinition final : public VariableDefinition {
+class PlainVariableDefinition final: public VariableDefinition {
 public:
 	PlainVariableDefinition(std::string name, std::shared_ptr<TypeName> type, std::shared_ptr<Expression> expr)
 		: VariableDefinition(name, std::move(type)), m_expr(std::move(expr)) {
-			m_ASTType = ElementASTTypes::PlainVariableDefinition;
-		}
+		m_ASTType = ElementASTTypes::PlainVariableDefinition;
+	}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "PlainVariableDefinitionAST" << RESET << '\n';
@@ -153,13 +156,14 @@ public:
 		}
 	}
 	const auto& getVarDefExpr() const { return m_expr; }
+
 private:
 	std::shared_ptr<Expression> m_expr; // optional
 };
 
 class ParameterList final: public BaseAST {
 public:
-	ParameterList(std::vector<std::shared_ptr<BaseAST>> params): params(std::move(params)) {
+	ParameterList(std::vector<std::shared_ptr<VariableDefinition>> params): params(std::move(params)) {
 		m_ASTType = ElementASTTypes::ParameterList;
 	}
 	void Dump(size_t depth, size_t mask) const override {
@@ -177,9 +181,10 @@ public:
 			}
 		}
 	}
+	const auto& GetArgs() const { return params; }
 
 private:
-	std::vector<std::shared_ptr<BaseAST>> params; // type, ident
+	std::vector<std::shared_ptr<VariableDefinition>> params; // type, ident
 };
 
 class Block final: public Statement {
@@ -217,13 +222,21 @@ public:
 		std::shared_ptr<Block> block)
 		: Declaration(name, std::move(return_type)), m_param(std::move(param_list)), m_visibility(visibility),
 		  m_block(std::move(block)) {
-			m_ASTType = ElementASTTypes::FunctionDefinition;
-		  }
+		m_ASTType = ElementASTTypes::FunctionDefinition;
+	}
+
+	const std::vector<std::shared_ptr<VariableDefinition>> GetArgs() const {
+		if (!m_param)
+			return {};
+		return m_param->GetArgs();
+	}
+
+	const std::shared_ptr<Block> GetBody() const { return m_block; }
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "FuncDefAST" << RESET << '\n';
-		
+
 		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "name: " << m_name << '\n';
@@ -239,14 +252,18 @@ public:
 			m_type->Dump(depth + 2, mask);
 		}
 
+		if (!m_block)
+			mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "visibility: " << visibilityToString(m_visibility) << '\n';
 
-		mask = unset(mask, depth + 1);
-		printIndent(depth + 1, mask);
-		std::cout << "block:" << '\n';
+		if (m_block) {
+			mask = unset(mask, depth + 1);
+			printIndent(depth + 1, mask);
+			std::cout << "block:" << '\n';
 
-		m_block->Dump(depth + 2, mask);
+			m_block->Dump(depth + 2, mask);
+		}
 	}
 
 private:
@@ -258,9 +275,7 @@ private:
 
 class ElementaryTypeName final: public TypeName {
 public:
-	ElementaryTypeName(Token type): m_type(type) {
-		m_ASTType = ElementASTTypes::ElementaryTypeName;
-	}
+	ElementaryTypeName(Token type): m_type(type) { m_ASTType = ElementASTTypes::ElementaryTypeName; }
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "ElementaryTypeNameAST" << RESET << '\n';
@@ -268,7 +283,8 @@ public:
 		printIndent(depth + 1, mask);
 		std::cout << "type: " << tokenToString(m_type) << '\n';
 	}
-	const Token const GetElementaryType() { return m_type; }
+	Token GetType() override { return m_type; }
+
 private:
 	Token m_type;
 };
@@ -298,15 +314,15 @@ class PrimaryExpression: public Expression {
 public:
 	PrimaryExpression(std::string value): m_value(value) {}
 
+	const std::string& GetValue() const { return m_value; }
+
 protected:
 	std::string m_value;
 };
 
 class Identifier final: public PrimaryExpression {
 public:
-	Identifier(std::string value): PrimaryExpression(value) {
-		m_ASTType = ElementASTTypes::Identifier;
-	}
+	Identifier(std::string value): PrimaryExpression(value) { m_ASTType = ElementASTTypes::Identifier; }
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "IdentifierAST" << RESET << '\n';
@@ -318,9 +334,7 @@ public:
 
 class BooleanLiteral final: public PrimaryExpression {
 public:
-	BooleanLiteral(std::string value): PrimaryExpression(value) {
-		m_ASTType = ElementASTTypes::BooleanLiteral;
-	}
+	BooleanLiteral(std::string value): PrimaryExpression(value) { m_ASTType = ElementASTTypes::BooleanLiteral; }
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "BooleanLiteralAST" << RESET << '\n';
@@ -332,9 +346,7 @@ public:
 
 class StringLiteral final: public PrimaryExpression {
 public:
-	StringLiteral(std::string value): PrimaryExpression(value) {
-		m_ASTType = ElementASTTypes::StringLiteral;
-	}
+	StringLiteral(std::string value): PrimaryExpression(value) { m_ASTType = ElementASTTypes::StringLiteral; }
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "StringLiteralAST" << RESET << '\n';
@@ -346,7 +358,7 @@ public:
 
 class NumberLiteral final: public PrimaryExpression {
 public:
-	NumberLiteral(std::string value/*, std::string unit = ""*/): PrimaryExpression(value)/*, m_unit(unit)*/ {
+	NumberLiteral(std::string value /*, std::string unit = ""*/): PrimaryExpression(value) /*, m_unit(unit)*/ {
 		m_ASTType = ElementASTTypes::NumberLiteral;
 	}
 	void Dump(size_t depth, size_t mask) const override {
@@ -357,16 +369,16 @@ public:
 		std::cout << "value: " << m_value << '\n';
 	}
 
-// private:
-// 	std::string m_unit;
+	// private:
+	// 	std::string m_unit;
 };
 
-class ArrayDefinition final : public VariableDefinition {
+class ArrayDefinition final: public VariableDefinition {
 public:
 	ArrayDefinition(std::string name, std::shared_ptr<TypeName> type, std::shared_ptr<Expression> size)
 		: VariableDefinition(name, std::move(type)), m_size(std::move(size)) {
-			m_ASTType = ElementASTTypes::ArrayDefinition;
-		}
+		m_ASTType = ElementASTTypes::ArrayDefinition;
+	}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "ArrayDefinitionAST" << RESET << '\n';
@@ -392,8 +404,7 @@ private:
 class StructDefinition final: public VariableDefinition {
 public:
 	StructDefinition(std::string name, std::vector<std::shared_ptr<VariableDefinition>> memList)
-	: 	VariableDefinition(name, std::make_shared<ElementaryTypeName>(Token::Struct)),
-		m_MemList(std::move(memList)) {
+		: VariableDefinition(name, std::make_shared<ElementaryTypeName>(Token::Struct)), m_MemList(std::move(memList)) {
 		m_ASTType = ElementASTTypes::StructDefinition;
 	}
 	void Dump(size_t depth, size_t mask) const override {
@@ -418,7 +429,6 @@ public:
 				(*iter)->Dump(depth + 2, mask);
 			}
 		}
-
 	}
 
 private:
@@ -429,8 +439,8 @@ class Assignment final: public Expression {
 public:
 	Assignment(std::shared_ptr<Expression> lhs, std::string assignOp, std::shared_ptr<Expression> rhs)
 		: m_leftHandSide(std::move(lhs)), m_assigmentOp(std::move(assignOp)), m_rightHandSide(std::move(rhs)) {
-			m_ASTType = ElementASTTypes::Assignment;
-		}
+		m_ASTType = ElementASTTypes::Assignment;
+	}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -463,8 +473,8 @@ class BinaryOp final: public Expression {
 public:
 	BinaryOp(std::shared_ptr<Expression> lhs, std::string binaryOp, std::shared_ptr<Expression> rhs)
 		: m_leftHandSide(std::move(lhs)), m_binaryOp(std::move(binaryOp)), m_rightHandSide(std::move(rhs)) {
-			m_ASTType = ElementASTTypes::BinaryOp;
-		}
+		m_ASTType = ElementASTTypes::BinaryOp;
+	}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -497,8 +507,8 @@ class UnaryOp final: public Expression {
 public:
 	UnaryOp(std::string unaryOp, std::shared_ptr<Expression> subExpr, bool isPrefix)
 		: m_unaryOp(std::move(unaryOp)), m_subExpr(std::move(subExpr)), m_isPrefix(isPrefix) {
-			m_ASTType = ElementASTTypes::UnaryOp;
-		}
+		m_ASTType = ElementASTTypes::UnaryOp;
+	}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "UnaryOpAST" << RESET << '\n';
@@ -528,8 +538,8 @@ public:
 		std::shared_ptr<Statement> elseStatement = nullptr)
 		: m_condition(std::move(condition)), m_thenStatement(std::move(thenStatement)),
 		  m_elseStatement(std::move(elseStatement)) {
-			m_ASTType = ElementASTTypes::IfStatement;
-		  }
+		m_ASTType = ElementASTTypes::IfStatement;
+	}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -568,8 +578,8 @@ class WhileStatement final: public Statement {
 public:
 	WhileStatement(std::shared_ptr<Expression> condition, std::shared_ptr<Statement> body)
 		: m_condition(std::move(condition)), m_body(std::move(body)) {
-			m_ASTType = ElementASTTypes::WhileStatement;
-		}
+		m_ASTType = ElementASTTypes::WhileStatement;
+	}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -602,8 +612,8 @@ public:
 		std::shared_ptr<Statement> body)
 		: m_init(std::move(init)), m_condition(std::move(condition)), m_update(std::move(update)),
 		  m_body(std::move(body)) {
-			m_ASTType = ElementASTTypes::ForStatement;
-		  }
+		m_ASTType = ElementASTTypes::ForStatement;
+	}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -643,8 +653,8 @@ class DoWhileStatement final: public Statement {
 public:
 	DoWhileStatement(std::shared_ptr<Expression> condition, std::shared_ptr<Statement> body)
 		: m_body(std::move(body)), m_condition(std::move(condition)) {
-			m_ASTType = ElementASTTypes::DoWhileStatement;
-		}
+		m_ASTType = ElementASTTypes::DoWhileStatement;
+	}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -670,9 +680,7 @@ private:
 
 class BreakStatement final: public Statement {
 public:
-	BreakStatement() {
-		m_ASTType = ElementASTTypes::BreakStatement;
-	};
+	BreakStatement() { m_ASTType = ElementASTTypes::BreakStatement; };
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -682,9 +690,7 @@ public:
 
 class ContinueStatement final: public Statement {
 public:
-	ContinueStatement() {
-		m_ASTType = ElementASTTypes::ContinueStatement;
-	};
+	ContinueStatement() { m_ASTType = ElementASTTypes::ContinueStatement; };
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -697,6 +703,8 @@ public:
 	ExpressionStatement(std::shared_ptr<Expression> expr): m_expr(std::move(expr)) {
 		m_ASTType = ElementASTTypes::ExpressionStatement;
 	}
+
+	const std::shared_ptr<Expression>& GetExpression() const { return m_expr; }
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -716,8 +724,8 @@ class IndexAccess final: public Expression {
 public:
 	IndexAccess(std::shared_ptr<Expression> expr, std::shared_ptr<Expression> index)
 		: m_expr(std::move(expr)), m_index(std::move(index)) {
-			m_ASTType = ElementASTTypes::IndexAccess;
-		}
+		m_ASTType = ElementASTTypes::IndexAccess;
+	}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -745,8 +753,12 @@ class FunctionCall final: public Expression {
 public:
 	FunctionCall(std::shared_ptr<Expression> expr, std::vector<std::shared_ptr<Expression>> args)
 		: m_expr(std::move(expr)), m_args(std::move(args)) {
-			m_ASTType = ElementASTTypes::FunctionCall;
-		}
+		m_ASTType = ElementASTTypes::FunctionCall;
+	}
+
+	std::string GetFunctionName() const { return reinterpret_cast<Identifier*>(m_expr.get())->GetValue(); }
+
+	std::vector<std::shared_ptr<Expression>> GetArgs() const { return m_args; }
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -781,8 +793,8 @@ class MemberAccess final: public Expression {
 public:
 	MemberAccess(std::shared_ptr<Expression> expr, std::string member)
 		: m_expr(std::move(expr)), m_member(std::move(member)) {
-			m_ASTType = ElementASTTypes::MemberAccess;
-		}
+		m_ASTType = ElementASTTypes::MemberAccess;
+	}
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);

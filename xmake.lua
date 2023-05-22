@@ -4,16 +4,21 @@ target("compiler")
     set_kind("binary")
     add_files("src/**/*.cpp", "src/*.cpp")
     add_includedirs("include")
+    add_includedirs("/usr/lib/llvm-14/include")
     set_rundir(".") -- 设置运行时根目录，相对路径从项目根目录开始
-    if is_plat("windows") then
-        add_toolchains("gcc") -- 默认clang，windows环境下使用gcc
-    end
     if is_plat("macosx") then
         add_toolchains("clang") 
         add_cxflags("-Wno-unused-parameter")
     end
-    add_cxxflags("-Wall", "-Wextra", "-Werror", "-Wno-unused")
+    add_toolchains("llvm") -- 使用llvm工具链
+    set_toolset("ld", "/usr/bin/clang++")
+    add_cxxflags("-Wall", "-Wextra", "-Werror", "-Wno-unused", "-Wno-unused-parameter")
     set_languages("c++17")
+
+    before_link(function (target)
+        local llvmconfig, errordata = os.iorun("llvm-config --cxxflags --ldflags --system-libs --libs core")
+        target:add("ldflags", llvmconfig, {force = true})
+    end)
     
 --
 -- If you want to known more usage about xmake, please see https://xmake.io
