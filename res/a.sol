@@ -1,8 +1,5 @@
-function a() returns (bool) {
-    return false;    
-}
 function main() returns () {
-    int test = 3;
-    test = 3.5;
-    a();
+    double a = 3.0;
+    a = a++ + 3.0;
+    a = ++a + 3.0;
 }

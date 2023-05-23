@@ -30,6 +30,9 @@ std::shared_ptr<SourceUnit> Parser::parseSourceUnit() {
 			} else if (peekCur(Token::Struct)) {
 				subnodes.push_back(parseStructDefinition());
 				expect(Token::Semicolon);
+			} else if (peekCur(Token::Semicolon)) {
+				/* Empty statement. */
+				expect(Token::Semicolon);
 			} else {
 				subnodes.push_back(parseStatement());
 			}
@@ -194,7 +197,8 @@ std::shared_ptr<Block> Parser::parseBlock() {
 		while (!match(Token::RBrace)) {
 			std::shared_ptr<Statement> stmt;
 			stmt = parseStatement();
-			stmts.push_back(std::move(stmt));
+			if (stmt != nullptr)
+				stmts.push_back(std::move(stmt));
 		}
 		return std::make_shared<Block>(std::move(stmts));
 	} catch (ParseError& e) {
@@ -209,9 +213,9 @@ std::shared_ptr<Statement> Parser::parseStatement() {
 		if (peekCur(Token::Return)) {
 			stmt = parseReturn();
 			expect(Token::Semicolon);
-		} else if (peekCur(Token::If))
+		} else if (peekCur(Token::If)) {
 			stmt = parseIf();
-		else if (peekCur(Token::While))
+		} else if (peekCur(Token::While))
 			stmt = parseWhile();
 		else if (peekCur(Token::For))
 			stmt = parseFor();
@@ -224,9 +228,10 @@ std::shared_ptr<Statement> Parser::parseStatement() {
 		} else if (peekCur(Token::Break)) {
 			stmt = parseBreak();
 			expect(Token::Semicolon);
-		} else if (peekCur(Token::Semicolon))
+		} else if (peekCur(Token::Semicolon)) {
 			stmt = nullptr;
-		else if (peekCur(isType)) {
+			expect(Token::Semicolon);
+		} else if (peekCur(isType)) {
 			stmt = parseVariableDefinition();
 			expect(Token::Semicolon);
 		} else if (peekCur(Token::Struct)) {
@@ -310,7 +315,7 @@ Parser::parseBinaryExpression(int minPrecedence, std::shared_ptr<Expression> con
 				// parse binary operation
 				expectGet([](Token tok) { return isBinaryOp(tok) || isCompareOp(tok); }, value);
 				std::shared_ptr<Expression> rhs = parseBinaryExpression(curPrecedence + 1);
-				expr = std::make_shared<BinaryOp>(expr, value, rhs);
+				expr = std::make_shared<BinaryOp>(expr, tok, rhs);
 			} catch (ParseError& e) {
 				LOG_WARNING("Parse fails.");
 				e.print();
@@ -327,7 +332,7 @@ std::shared_ptr<Expression> Parser::parseUnaryExpression(std::shared_ptr<Express
 		// prefix expression
 		matchGet(isUnaryOp, value);
 		std::shared_ptr<Expression> subexpr = parseUnaryExpression();
-		return std::make_shared<UnaryOp>(value, subexpr, true);
+		return std::make_shared<UnaryOp>(tok, subexpr, true);
 	} else {
 		std::shared_ptr<Expression> subexpr = parseLeftHandSideExpression(partiallyParsedExpression);
 		tok = curTok();
@@ -338,7 +343,7 @@ std::shared_ptr<Expression> Parser::parseUnaryExpression(std::shared_ptr<Express
 		}
 		// postfix expression
 		matchGet(isCount, value);
-		return std::make_shared<UnaryOp>(value, subexpr, false);
+		return std::make_shared<UnaryOp>(tok, subexpr, false);
 	}
 }
 

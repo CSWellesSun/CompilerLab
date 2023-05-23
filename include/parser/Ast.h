@@ -480,10 +480,14 @@ private:
 
 class BinaryOp final: public Expression {
 public:
-	BinaryOp(std::shared_ptr<Expression> lhs, std::string binaryOp, std::shared_ptr<Expression> rhs)
+	BinaryOp(std::shared_ptr<Expression> lhs, Token binaryOp, std::shared_ptr<Expression> rhs)
 		: m_leftHandSide(std::move(lhs)), m_binaryOp(std::move(binaryOp)), m_rightHandSide(std::move(rhs)) {
 		m_ASTType = ElementASTTypes::BinaryOp;
 	}
+
+	std::shared_ptr<Expression> GetLeftHand() const { return m_leftHandSide; }
+	std::shared_ptr<Expression> GetRightHand() const { return m_rightHandSide; }
+	Token GetOp() const { return m_binaryOp; }
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -496,7 +500,7 @@ public:
 		m_leftHandSide->Dump(depth + 2, mask);
 
 		printIndent(depth + 1, mask);
-		std::cout << "binaryOp: " << m_binaryOp << '\n';
+		std::cout << "binaryOp: " << tokenToString(m_binaryOp) << '\n';
 
 		mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
@@ -508,23 +512,28 @@ public:
 
 private:
 	std::shared_ptr<Expression> m_leftHandSide;
-	std::string m_binaryOp;
+	Token m_binaryOp;
 	std::shared_ptr<Expression> m_rightHandSide;
 };
 
 class UnaryOp final: public Expression {
 public:
-	UnaryOp(std::string unaryOp, std::shared_ptr<Expression> subExpr, bool isPrefix)
+	UnaryOp(Token unaryOp, std::shared_ptr<Expression> subExpr, bool isPrefix)
 		: m_unaryOp(std::move(unaryOp)), m_subExpr(std::move(subExpr)), m_isPrefix(isPrefix) {
 		m_ASTType = ElementASTTypes::UnaryOp;
 	}
+
+	Token GetOp() const { return m_unaryOp; }
+	std::shared_ptr<Expression> GetExpr() const { return m_subExpr; }
+	bool IsPrefix() const { return m_isPrefix; }
+
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "UnaryOpAST" << RESET << '\n';
 
 		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
-		std::cout << "unaryOp: " << (m_isPrefix ? "prefix " : "postfix ") << m_unaryOp << '\n';
+		std::cout << "unaryOp: " << (m_isPrefix ? "prefix " : "postfix ") << tokenToString(m_unaryOp) << '\n';
 
 		mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
@@ -534,7 +543,7 @@ public:
 	}
 
 private:
-	std::string m_unaryOp;
+	Token m_unaryOp;
 	std::shared_ptr<Expression> m_subExpr;
 	bool m_isPrefix;
 };
@@ -550,23 +559,31 @@ public:
 		m_ASTType = ElementASTTypes::IfStatement;
 	}
 
+	std::shared_ptr<Expression> GetCondition() const { return m_condition; }
+	std::shared_ptr<Statement> GetThenStatement() const { return m_thenStatement; }
+	std::shared_ptr<Statement> GetElseStatement() const { return m_elseStatement; }
+
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "IfStatementAST" << RESET << '\n';
 
-		mask = set(mask, depth + 1);
+		if (m_thenStatement) {
+			mask = set(mask, depth + 1);
+		}
 		printIndent(depth + 1, mask);
 		std::cout << "condition: " << '\n';
 
 		m_condition->Dump(depth + 2, mask);
 
-		if (!m_thenStatement) {
-			mask = unset(mask, depth + 1);
-		}
-		printIndent(depth + 1, mask);
-		std::cout << "thenStatement: " << '\n';
+		if (m_thenStatement) {
+			if (!m_elseStatement) {
+				mask = unset(mask, depth + 1);
+			}
+			printIndent(depth + 1, mask);
+			std::cout << "thenStatement: " << '\n';
 
-		m_thenStatement->Dump(depth + 2, mask);
+			m_thenStatement->Dump(depth + 2, mask);
+		}
 
 		if (m_elseStatement) {
 			mask = unset(mask, depth + 1);
