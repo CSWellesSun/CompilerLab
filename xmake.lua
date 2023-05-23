@@ -6,10 +6,6 @@ target("compiler")
     add_includedirs("include")
     add_includedirs("/usr/lib/llvm-14/include")
     set_rundir(".") -- 设置运行时根目录，相对路径从项目根目录开始
-    if is_plat("macosx") then
-        add_toolchains("clang") 
-        add_cxflags("-Wno-unused-parameter")
-    end
     add_toolchains("llvm") -- 使用llvm工具链
     set_toolset("ld", "/usr/bin/clang++")
     add_cxxflags("-Wall", "-Wextra", "-Werror", "-Wno-unused", "-Wno-unused-parameter")
