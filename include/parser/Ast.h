@@ -18,10 +18,10 @@ enum class ElementASTTypes {
 	PlainVariableDefinition,
 	ArrayDefinition,
 	StructDefinition,
-	ParameterList,
+	ParameterList, // Maybe useless, remove later
 	Block,
 	FunctionDefinition,
-	ElementaryTypeName,
+	ElementaryTypeName, // Maybe useless, remove later
 	ReturnStatement,
 	Identifier,
 	BooleanLiteral,
@@ -208,6 +208,8 @@ public:
 		}
 	}
 
+	const auto& GetStatements() const { return m_stmts; }
+
 private:
 	std::vector<std::shared_ptr<Statement>> m_stmts;
 };
@@ -295,6 +297,9 @@ public:
 	ReturnStatement(std::shared_ptr<Expression> expr): m_expr(std::move(expr)) {
 		m_ASTType = ElementASTTypes::ReturnStatement;
 	}
+
+	std::shared_ptr<Expression> GetExpr() const { return m_expr; }
+
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "ReturnAST" << RESET << '\n';
@@ -437,10 +442,14 @@ private:
 
 class Assignment final: public Expression {
 public:
-	Assignment(std::shared_ptr<Expression> lhs, std::string assignOp, std::shared_ptr<Expression> rhs)
+	Assignment(std::shared_ptr<Expression> lhs, Token assignOp, std::shared_ptr<Expression> rhs)
 		: m_leftHandSide(std::move(lhs)), m_assigmentOp(std::move(assignOp)), m_rightHandSide(std::move(rhs)) {
 		m_ASTType = ElementASTTypes::Assignment;
 	}
+
+	std::shared_ptr<Expression> GetLeftHand() const { return m_leftHandSide; }
+	Token GetAssigmentOp() const { return m_assigmentOp; }
+	std::shared_ptr<Expression> GetRightHand() const { return m_rightHandSide; }
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -453,7 +462,7 @@ public:
 		m_leftHandSide->Dump(depth + 2, mask);
 
 		printIndent(depth + 1, mask);
-		std::cout << "assigmentOp: " << m_assigmentOp << '\n';
+		std::cout << "assigmentOp: " << tokenToString(m_assigmentOp) << '\n';
 
 		mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
@@ -465,7 +474,7 @@ public:
 
 private:
 	std::shared_ptr<Expression> m_leftHandSide;
-	std::string m_assigmentOp;
+	Token m_assigmentOp;
 	std::shared_ptr<Expression> m_rightHandSide;
 };
 
@@ -704,7 +713,7 @@ public:
 		m_ASTType = ElementASTTypes::ExpressionStatement;
 	}
 
-	const std::shared_ptr<Expression>& GetExpression() const { return m_expr; }
+	const std::shared_ptr<Expression>& GetExpr() const { return m_expr; }
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);

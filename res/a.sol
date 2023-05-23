@@ -1,4 +1,8 @@
-function a() returns (int) {
-    
+function a() returns (bool) {
+    return false;    
 }
-a();
+function main() returns () {
+    int test = 3;
+    test = 3.5;
+    a();
+}

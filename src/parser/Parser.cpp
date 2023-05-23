@@ -128,8 +128,12 @@ std::shared_ptr<FunctionDefinition> Parser::parseFunctionDefinition() {
 
 		expect(Token::Returns);
 		expect(Token::LParen);
-		returnType = parseTypeName();
-		expect(Token::RParen);
+		if (!match(Token::RParen)) {
+			returnType = parseTypeName();
+			expect(Token::RParen);
+		}
+		if (returnType == nullptr)
+			returnType = std::make_shared<ElementaryTypeName>(Token::Void);
 
 		if (peekCur(Token::LBrace))
 			block = parseBlock();
@@ -243,10 +247,11 @@ std::shared_ptr<Statement> Parser::parseStatement() {
 }
 
 std::shared_ptr<ReturnStatement> Parser::parseReturn() {
-	std::shared_ptr<Expression> expr;
+	std::shared_ptr<Expression> expr = nullptr;
 
 	expect(Token::Return);
-	expr = parseExpression();
+	if (!peekCur(Token::Semicolon))
+		expr = parseExpression();
 	return std::make_shared<ReturnStatement>(std::move(expr));
 }
 
@@ -257,10 +262,9 @@ std::shared_ptr<Expression> Parser::parseExpression(std::shared_ptr<Expression> 
 
 	if (isAssignmentOp(tok)) {
 		// Assignment.
-		value = curVal();
 		advance(); // eat assignment operator
 		std::shared_ptr<Expression> rhs = parseExpression();
-		return std::make_shared<Assignment>(expr, value, rhs);
+		return std::make_shared<Assignment>(expr, tok, rhs);
 	}
 	return expr;
 }
