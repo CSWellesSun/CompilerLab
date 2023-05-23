@@ -147,6 +147,7 @@ namespace minisolc {
 	K(Bool, "bool", 0)                                                                     \
 	K(Float, "float", 0)                                                                   \
 	K(Double, "double", 0)                                                                 \
+	K(Void, "void", 0)                                                                     \
 	T(IntM, "intM", 0)                                                                     \
 	T(UIntM, "uintM", 0)                                                                   \
 	T(TypesEnd, nullptr, 0) /* used as type enum end marker */                             \
@@ -248,13 +249,11 @@ constexpr bool isalnumus(char c) { return std::isalpha(c) || std::isdigit(c) || 
 constexpr bool isoct(char c) { return c >= '0' && c <= '7'; };
 constexpr bool issep(char c) { return !std::isalnum(c) && c != '.'; }
 
-constexpr int precedence(Token tok)
-{
-	int constexpr precs[static_cast<size_t>(Token::NUM_TOKENS)] =
-	{
-		#define T(name, string, precedence) precedence,
+constexpr int precedence(Token tok) {
+	int constexpr precs[static_cast<size_t>(Token::NUM_TOKENS)] = {
+#define T(name, string, precedence) precedence,
 		TOKEN_LIST(T, T)
-		#undef T
+#undef T
 	};
 	return precs[static_cast<size_t>(tok)];
 }

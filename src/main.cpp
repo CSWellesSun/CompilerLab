@@ -1,3 +1,4 @@
+#include "codegen/CodeGen.h"
 #include "lexer/TokenStream.h"
 #include "parser/Parser.h"
 #include "preprocess/Preprocess.h"
@@ -24,4 +25,7 @@ int main(int argc, const char* argv[]) {
 	Parser parser(tokenStream);
 	parser.parse();
 	parser.Dump();
+	cout << "\n";
+	CodeGenerator codeGenerator(parser.GetAst());
+	codeGenerator.Dump();
 }

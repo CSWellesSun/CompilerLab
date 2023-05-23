@@ -1,6 +1,7 @@
 #include "parser/Parser.h"
 #include "common/Defs.h"
 #include "lexer/Token.h" // for precedence()
+#include "parser/Ast.h"
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -30,9 +31,7 @@ std::shared_ptr<SourceUnit> Parser::parseSourceUnit() {
 				subnodes.push_back(parseStructDefinition());
 				expect(Token::Semicolon);
 			} else {
-				LOG_WARNING("Expect function definition or variable declaration!");
-				throw ContractDefinitionParseError(curTokInfo());
-				break;
+				subnodes.push_back(parseStatement());
 			}
 		}
 		return std::make_shared<SourceUnit>(std::move(subnodes));
@@ -103,9 +102,9 @@ std::shared_ptr<StructDefinition> Parser::parseStructDefinition() {
 std::shared_ptr<FunctionDefinition> Parser::parseFunctionDefinition() {
 	std::string name;
 	std::string vis;
-	std::shared_ptr<ParameterList> paramList;
-	std::shared_ptr<TypeName> returnType;
-	std::shared_ptr<Block> block;
+	std::shared_ptr<ParameterList> paramList = nullptr;
+	std::shared_ptr<TypeName> returnType = nullptr;
+	std::shared_ptr<Block> block = nullptr;
 
 	StateMutability stateMutability{StateMutability::Nonpayable};
 	Visibility visibility{Visibility::Default};
@@ -127,13 +126,19 @@ std::shared_ptr<FunctionDefinition> Parser::parseFunctionDefinition() {
 			visibility = visibilityByName(vis);
 		}
 
-		if (match(Token::Returns)) {
-			expect(Token::LParen);
+		expect(Token::Returns);
+		expect(Token::LParen);
+		if (!match(Token::RParen)) {
 			returnType = parseTypeName();
 			expect(Token::RParen);
 		}
+		if (returnType == nullptr)
+			returnType = std::make_shared<ElementaryTypeName>(Token::Void);
 
-		block = parseBlock();
+		if (peekCur(Token::LBrace))
+			block = parseBlock();
+		else
+			expect(Token::Semicolon);
 
 		return std::make_shared<
 			FunctionDefinition>(name, std::move(paramList), visibility, std::move(returnType), std::move(block));
@@ -145,7 +150,7 @@ std::shared_ptr<FunctionDefinition> Parser::parseFunctionDefinition() {
 }
 
 std::shared_ptr<ParameterList> Parser::parseParameterList() {
-	std::vector<std::shared_ptr<BaseAST>> params;
+	std::vector<std::shared_ptr<VariableDefinition>> params;
 	/* (Type variable, Type variable, ..., Type variable) */
 	try {
 		expect(Token::LParen);
@@ -242,10 +247,11 @@ std::shared_ptr<Statement> Parser::parseStatement() {
 }
 
 std::shared_ptr<ReturnStatement> Parser::parseReturn() {
-	std::shared_ptr<Expression> expr;
+	std::shared_ptr<Expression> expr = nullptr;
 
 	expect(Token::Return);
-	expr = parseExpression();
+	if (!peekCur(Token::Semicolon))
+		expr = parseExpression();
 	return std::make_shared<ReturnStatement>(std::move(expr));
 }
 
@@ -256,10 +262,9 @@ std::shared_ptr<Expression> Parser::parseExpression(std::shared_ptr<Expression> 
 
 	if (isAssignmentOp(tok)) {
 		// Assignment.
-		value = curVal();
 		advance(); // eat assignment operator
 		std::shared_ptr<Expression> rhs = parseExpression();
-		return std::make_shared<Assignment>(expr, value, rhs);
+		return std::make_shared<Assignment>(expr, tok, rhs);
 	}
 	return expr;
 }
