@@ -345,19 +345,96 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return nullptr;
 	}
 	case ElementASTTypes::WhileStatement: {
+		WhileStatement* node = dynamic_cast<WhileStatement *>(AstNode.get());
+		ASSERT(node != nullptr, "dynamic cast fails.");
+		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
+		llvm::BasicBlock *block = llvm::BasicBlock::Create(*m_Context);
+		llvm::BasicBlock *after = llvm::BasicBlock::Create(*m_Context);
+
+		llvm::Value* condition = generate(node->GetConditionExpr());
+		
+		// according to parser, condition won't be nullptr
+	/*
+		if (condition == nullptr) {
+			LOG_INFO("Maybe an invalid while loop condition.");
+			return nullptr;
+		}
+	*/
+		m_Builder->CreateCondBr(condition, block, after);
+		m_Builder->SetInsertPoint(block);
+		function->getBasicBlockList().push_back(block);
+
+		pushBlock();
+		generate(node->GetWhileLoopBody());
+		popBlock();
+
+		condition = generate(node->GetConditionExpr());
+
+		m_Builder->CreateCondBr(condition, block, after);
+
+		m_Builder->SetInsertPoint(after);
+		function->getBasicBlockList().push_back(after);
+
 		return nullptr;
 	}
 	case ElementASTTypes::ForStatement: {
-		// ForStatement* node = dynamic_cast<ForStatement *>(AstNode.get());
-		// ASSERT(node != nullptr, "dynamic cast fails.");
-		// llvm::BasicBlock *block = llvm::BasicBlock::Create(*m_Context);
-		// llvm::BasicBlock *after = llvm::BasicBlock::Create(*m_Context);
+		
+		ForStatement* node = dynamic_cast<ForStatement *>(AstNode.get());
+		ASSERT(node != nullptr, "dynamic cast fails.");
+		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
+		llvm::BasicBlock *block = llvm::BasicBlock::Create(*m_Context);
+		llvm::BasicBlock *after = llvm::BasicBlock::Create(*m_Context);
 
-		// To be continued ...
+		if (node->GetInitExpr() != nullptr) {
+			generate(node->GetInitExpr());
+		}
+
+		// We assume no empty condition, such as for (;;)
+		llvm::Value *condition = generate(node->GetConditionExpr());
+
+		// according to parser, condition won't be nullptr
+	/*
+		if (condition == nullptr) {
+			LOG_INFO("Maybe an invalid for loop condition.");
+			return nullptr;
+		}
+	*/
+		m_Builder->CreateCondBr(condition, block, after);
+		m_Builder->SetInsertPoint(block);
+		function->getBasicBlockList().push_back(block);
+		pushBlock();
+		generate(node->GetForLoopBody());
+		popBlock();
+
+		if (node->GetUpdateExpr() != nullptr) {
+			generate(node->GetUpdateExpr());
+		}
+
+		condition = generate(node->GetConditionExpr());
+
+		m_Builder->CreateCondBr(condition, block, after);
+
+		function->getBasicBlockList().push_back(after);
+		m_Builder->SetInsertPoint(after);
+
 		return nullptr;
-
+	}
 	case ElementASTTypes::DoWhileStatement: {
-		LOG_WARNING("Not implemented");
+		DoWhileStatement* node = dynamic_cast<DoWhileStatement *>(AstNode.get());
+		ASSERT(node != nullptr, "dynamic cast fails.");
+		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
+		llvm::BasicBlock *block = llvm::BasicBlock::Create(*m_Context);
+		llvm::BasicBlock *after = llvm::BasicBlock::Create(*m_Context);
+		m_Builder->SetInsertPoint(block);
+		function->getBasicBlockList().push_back(block);
+		pushBlock();
+		generate(node->GetDoWhileLoopBody());
+		popBlock();
+
+		llvm::Value *condition = generate(node->GetConditionExpr());
+		m_Builder->CreateCondBr(condition, block, after);
+		function->getBasicBlockList().push_back(after);
+		m_Builder->SetInsertPoint(after);
 		return nullptr;
 	}
 	case ElementASTTypes::BreakStatement: {
@@ -408,6 +485,5 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 	default:
 		// Not implemented!
 		return nullptr;
-	}
 	} // switch
-}
+} 

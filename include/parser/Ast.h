@@ -622,6 +622,9 @@ public:
 		m_body->Dump(depth + 2, mask);
 	}
 
+	GETS_M(GetConditionExpr, m_condition);
+	GETS_M(GetWhileLoopBody, m_body);
+
 private:
 	std::shared_ptr<Expression> m_condition;
 	std::shared_ptr<Statement> m_body;
@@ -666,6 +669,11 @@ public:
 		m_body->Dump(depth + 2, mask);
 	}
 
+	GETS_M(GetInitExpr, m_init);
+	GETS_M(GetConditionExpr, m_condition);
+	GETS_M(GetUpdateExpr, m_update);
+	GETS_M(GetForLoopBody, m_body);
+
 private:
 	std::shared_ptr<SimpleStatement> m_init;
 	std::shared_ptr<Expression> m_condition;
@@ -696,6 +704,9 @@ public:
 
 		m_condition->Dump(depth + 2, mask);
 	}
+
+	GETS_M(GetDoWhileLoopBody, m_body);
+	GETS_M(GetConditionExpr, m_condition);
 
 private:
 	std::shared_ptr<Statement> m_body;

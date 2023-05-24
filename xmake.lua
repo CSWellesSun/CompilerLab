@@ -7,7 +7,7 @@ target("compiler")
     add_includedirs("/usr/lib/llvm-14/include")
     set_rundir(".") -- 设置运行时根目录，相对路径从项目根目录开始
     add_toolchains("llvm") -- 使用llvm工具链
-    set_toolset("ld", "/usr/bin/clang++")
+    set_toolset("ld", "/usr/bin/g++")
     add_cxxflags("-Wall", "-Wextra", "-Werror", "-Wno-unused", "-Wno-unused-parameter")
     set_languages("c++17")
 
