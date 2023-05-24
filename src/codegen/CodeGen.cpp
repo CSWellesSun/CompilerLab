@@ -86,9 +86,11 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return res;
 	}
 	case ElementASTTypes::ArrayDefinition: {
+		LOG_WARNING("Not implemented!");
 		return nullptr;
 	}
 	case ElementASTTypes::StructDefinition: {
+		LOG_WARNING("Not implemented!");
 		return nullptr;
 	}
 	case ElementASTTypes::Block: {
@@ -118,7 +120,9 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 
 		// Create the function
 		std::vector<llvm::Type*> argTypes;
-		for (const auto& arg: node->GetArgs()) {
+		const auto& paralist = node->GetParameterList();
+		const auto& argsvt = (paralist != nullptr) ? paralist->GetArgs() : std::vector<std::shared_ptr<VariableDefinition> >{};
+		for (const auto& arg: argsvt) {
 			argTypes.push_back(getLLVMType(arg->GetDeclarationType()->GetType()));
 		}
 		llvm::FunctionType* funcType
@@ -127,7 +131,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		// Set names for all arguments
 		unsigned idx = 0;
 		for (auto& arg: func->args()) {
-			arg.setName(node->GetArgs()[idx++]->GetName());
+			arg.setName(argsvt[idx++]->GetName());
 		}
 
 		if (func == nullptr)
@@ -247,6 +251,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		case Token::Mod:
 			return m_Builder->CreateFRem(leftHandValue, rightHandValue);
 		case Token::Exp: // TODO
+			LOG_WARNING("Not implemented!");
 			return nullptr;
 		case Token::Equal:
 			return m_Builder->CreateFCmpUEQ(leftHandValue, rightHandValue);
@@ -343,15 +348,24 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return nullptr;
 	}
 	case ElementASTTypes::ForStatement: {
+		// ForStatement* node = dynamic_cast<ForStatement *>(AstNode.get());
+		// ASSERT(node != nullptr, "dynamic cast fails.");
+		// llvm::BasicBlock *block = llvm::BasicBlock::Create(*m_Context);
+		// llvm::BasicBlock *after = llvm::BasicBlock::Create(*m_Context);
+
+		// To be continued ...
 		return nullptr;
-	}
+
 	case ElementASTTypes::DoWhileStatement: {
+		LOG_WARNING("Not implemented");
 		return nullptr;
 	}
 	case ElementASTTypes::BreakStatement: {
+		LOG_WARNING("Not implemented");
 		return nullptr;
 	}
 	case ElementASTTypes::ContinueStatement: {
+		LOG_WARNING("Not implemented");
 		return nullptr;
 	}
 	case ElementASTTypes::ExpressionStatement: {
@@ -360,6 +374,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return generate(node->GetExpr());
 	}
 	case ElementASTTypes::IndexAccess: {
+		LOG_WARNING("Not implemented");
 		return nullptr;
 	}
 	case ElementASTTypes::FunctionCall: {
@@ -387,10 +402,12 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return m_Builder->CreateCall(func, args);
 	}
 	case ElementASTTypes::MemberAccess: {
+		LOG_WARNING("Not implemented");
 		return nullptr;
 	}
 	default:
 		// Not implemented!
 		return nullptr;
 	}
+	} // switch
 }

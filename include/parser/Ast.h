@@ -88,8 +88,9 @@ public:
 class Declaration {
 public:
 	Declaration(std::string name, std::shared_ptr<TypeName> type = nullptr): m_name(name), m_type(std::move(type)) {}
-	const std::string& GetName() const { return m_name; }
-	const std::shared_ptr<TypeName>& GetDeclarationType() const { return m_type; }
+
+	GETS_M(GetName, m_name);
+	GETS_M(GetDeclarationType, m_type);
 
 protected:
 	std::string m_name;
@@ -117,7 +118,7 @@ public:
 		}
 	}
 
-	const auto& getSubNodes() const { return m_subnodes; } // for tranverse
+	GETS_M(getSubNodes, m_subnodes); // for tranverse
 
 private:
 	std::vector<std::shared_ptr<BaseAST>> m_subnodes;
@@ -155,7 +156,8 @@ public:
 			m_expr->Dump(depth + 2, mask);
 		}
 	}
-	const auto& getVarDefExpr() const { return m_expr; }
+	
+	GETS_M(getVarDefExpr, m_expr);
 
 private:
 	std::shared_ptr<Expression> m_expr; // optional
@@ -181,7 +183,8 @@ public:
 			}
 		}
 	}
-	const auto& GetArgs() const { return params; }
+
+	GETS_M(GetArgs, params);
 
 private:
 	std::vector<std::shared_ptr<VariableDefinition>> params; // type, ident
@@ -208,7 +211,7 @@ public:
 		}
 	}
 
-	const auto& GetStatements() const { return m_stmts; }
+	GETS_M(GetStatements, m_stmts);
 
 private:
 	std::vector<std::shared_ptr<Statement>> m_stmts;
@@ -227,13 +230,8 @@ public:
 		m_ASTType = ElementASTTypes::FunctionDefinition;
 	}
 
-	const std::vector<std::shared_ptr<VariableDefinition>> GetArgs() const {
-		if (!m_param)
-			return {};
-		return m_param->GetArgs();
-	}
-
-	const std::shared_ptr<Block> GetBody() const { return m_block; }
+	GETS_M(GetParameterList, m_param);
+	GETS_M(GetBody, m_block);
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -298,7 +296,7 @@ public:
 		m_ASTType = ElementASTTypes::ReturnStatement;
 	}
 
-	std::shared_ptr<Expression> GetExpr() const { return m_expr; }
+	GETS_M(GetExpr, m_expr);
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -319,7 +317,7 @@ class PrimaryExpression: public Expression {
 public:
 	PrimaryExpression(std::string value): m_value(value) {}
 
-	const std::string& GetValue() const { return m_value; }
+	GETS_M(GetValue, m_value);
 
 protected:
 	std::string m_value;
@@ -487,7 +485,7 @@ public:
 
 	std::shared_ptr<Expression> GetLeftHand() const { return m_leftHandSide; }
 	std::shared_ptr<Expression> GetRightHand() const { return m_rightHandSide; }
-	Token GetOp() const { return m_binaryOp; }
+	GETS_M(GetOp, m_binaryOp);
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -523,8 +521,8 @@ public:
 		m_ASTType = ElementASTTypes::UnaryOp;
 	}
 
-	Token GetOp() const { return m_unaryOp; }
-	std::shared_ptr<Expression> GetExpr() const { return m_subExpr; }
+	GETS_M(GetOp, m_unaryOp);
+	GETS_M(GetExpr, m_subExpr);
 	bool IsPrefix() const { return m_isPrefix; }
 
 	void Dump(size_t depth, size_t mask) const override {
@@ -559,9 +557,9 @@ public:
 		m_ASTType = ElementASTTypes::IfStatement;
 	}
 
-	std::shared_ptr<Expression> GetCondition() const { return m_condition; }
-	std::shared_ptr<Statement> GetThenStatement() const { return m_thenStatement; }
-	std::shared_ptr<Statement> GetElseStatement() const { return m_elseStatement; }
+	GETS_M(GetCondition, m_condition);
+	GETS_M(GetThenStatement, m_thenStatement);
+	GETS_M(GetElseStatement, m_elseStatement);
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);

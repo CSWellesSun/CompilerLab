@@ -28,10 +28,10 @@
 #define RED "\033[31m"	  /* Red */
 #define GREEN "\033[32m"  /* Green */
 #define YELLOW "\033[33m" /* Yellow */
-#define BLUE "\033[34m" 
-#define MAGENTA "\033[35m" 
-#define CYAN "\033[36m" 
-#define GRAY "\033[30m"	  /* Light gray */
+#define BLUE "\033[34m"
+#define MAGENTA "\033[35m"
+#define CYAN "\033[36m"
+#define GRAY "\033[30m" /* Light gray */
 #define DARKGRAY "\033[1;30m"
 #define DARKRED "\033[1;31m"
 #define DARKGREEN "\033[1;32m"
@@ -91,5 +91,26 @@
 #define DISALLOW_COPY_AND_MOVE(cname) \
 	DISALLOW_COPY(cname);             \
 	DISALLOW_MOVE(cname);
+
+// Property accessor, get (read) or set (write) properties.
+#define GETS_M(fname, pname) \
+	inline const auto& fname() const { return pname; }
+#define SETS_M(fname, pname) \
+	inline void fname(decltype(pname) v) { pname = v; }
+
+// Maybe not be used ...
+#define PropertyBuilderByName(type, name, access_permission /* public/private */) \
+	access_permission:                                                            \
+	type m_##name;                                                                \
+                                                                                  \
+public:                                                                           \
+	GETS_M(Get##name, m_##name)                                                   \
+	SETS_M(Set##name, m_##name)
+// Maybe not be used ...
+#define PrivateGetBuilder(type, name) \
+private:                              \
+	type m_##name;                    \
+public:                               \
+	GETS_M(Get##name, m_##name)
 
 #endif // MACROS_H
