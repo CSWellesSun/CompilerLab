@@ -4,13 +4,15 @@ target("compiler")
     set_kind("binary")
     add_files("src/**/*.cpp", "src/*.cpp")
     add_includedirs("include")
-    add_includedirs("/usr/lib/llvm-14/include")
     set_rundir(".") -- 设置运行时根目录，相对路径从项目根目录开始
     if is_plat("macosx") then
         add_toolchains("clang") 
         add_cxflags("-Wno-unused-parameter")
+        add_includedirs("/opt/homebrew/Cellar/llvm/16.0.4/include")
+    else 
+        add_includedirs("/usr/lib/llvm-14/include")
+        add_toolchains("llvm") -- 使用llvm工具链
     end
-    add_toolchains("llvm") -- 使用llvm工具链
     set_toolset("ld", "/usr/bin/clang++")
     add_cxxflags("-Wall", "-Wextra", "-Werror", "-Wno-unused", "-Wno-unused-parameter")
     set_languages("c++17")

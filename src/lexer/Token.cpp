@@ -26,8 +26,10 @@ Token minisolc::keywordByName(std::string _name) {
 
 char const* minisolc::tokenToString(Token tok) {
 	switch (tok) {
-	case Token::Number:
-		return "\'Number\'";
+	case Token::IntNumber:
+		return "\'IntNumber\'";
+	case Token::DoubleNumber:
+		return "\'DoubleNumber\'";
 	case Token::StringLiteral:
 		return "\'StringLiteral\'";
 	case Token::UnicodeStringLiteral:
@@ -53,7 +55,7 @@ char const* minisolc::tokenToString(Token tok) {
 	}
 }
 
-/// TODO: 需要加上Erro相关的处理
+/// TODO: 需要加上Error相关的处理
 Visibility minisolc::visibilityByName(std::string _name) {
 	if (_name == "external")
 		return Visibility::External;
@@ -81,5 +83,36 @@ char const* minisolc::visibilityToString(Visibility _visibility) {
 		return "default";
 	default:
 		return "";
+	}
+}
+
+Type minisolc::typeByName(std::string _name) {
+	if (_name == "INTEGER")
+		return Type::INTEGER;
+	else if (_name == "BOOLEAN")
+		return Type::BOOLEAN;
+	else if (_name == "FLOAT")
+		return Type::FLOAT;
+	else if (_name == "DOUBLE")
+		return Type::DOUBLE;
+	else if (_name == "STRING")
+		return Type::STRING;
+	else
+		return Type::UNKNOWN;
+}
+char const* minisolc::typeToString(Type type) {
+	switch (type) {
+	case Type::INTEGER:
+		return "INTEGER";
+	case Type::BOOLEAN:
+		return "BOOLEAN";
+	case Type::DOUBLE:
+		return "DOUBLE";
+	case Type::FLOAT:
+		return "FLOAT";
+	case Type::STRING:
+		return "STRING";
+	case Type::UNKNOWN:
+		return "UNKNOWN";
 	}
 }

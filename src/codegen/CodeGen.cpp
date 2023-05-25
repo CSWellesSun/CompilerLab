@@ -2,8 +2,8 @@
 #include "common/Defs.h"
 #include "parser/Ast.h"
 
-#include <llvm-14/llvm/IR/Constants.h>
-#include <llvm-14/llvm/IR/Function.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Function.h>
 #include <memory>
 
 using namespace minisolc;

@@ -409,9 +409,12 @@ std::shared_ptr<Expression> Parser::parseLiterial() {
 		case Token::FalseLiteral:
 			/* Boolean literal. */
 			return std::make_shared<BooleanLiteral>(value);
-		case Token::Number:
+		case Token::IntNumber:
 			/* Number literal. */
-			return std::make_shared<NumberLiteral>(value);
+			return std::make_shared<NumberLiteral>(value, Type::INTEGER);
+		case Token::DoubleNumber:
+			/* Number literal. */
+			return std::make_shared<NumberLiteral>(value, Type::DOUBLE);
 		case Token::StringLiteral:
 			/* String literal. */
 			return std::make_shared<StringLiteral>(value);

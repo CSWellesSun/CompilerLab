@@ -155,7 +155,8 @@ namespace minisolc {
 	/* Literals */                                                                         \
 	K(TrueLiteral, "true", 0)                                                              \
 	K(FalseLiteral, "false", 0)                                                            \
-	T(Number, nullptr, 0)                                                                  \
+	T(IntNumber, nullptr, 0)                                                               \
+	T(DoubleNumber, nullptr, 0)                                                            \
 	T(StringLiteral, nullptr, 0)                                                           \
 	T(UnicodeStringLiteral, nullptr, 0)                                                    \
 	T(HexStringLiteral, nullptr, 0)                                                        \
@@ -277,4 +278,16 @@ struct TokenInfo {
 		: m_tok(tok), m_val(v), m_loc(line, start, end){};
 };
 
+enum class Type {
+	UNKNOWN,
+	INTEGER,
+	DOUBLE,
+	FLOAT,
+	STRING,
+	BOOLEAN,
+	//... and other types if needed.
+};
+
+Type typeByName(std::string _name);
+char const* typeToString(Type type);
 }
