@@ -486,7 +486,6 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		const std::string& arrName = arrIdentifier->GetValue();
 		auto varptr = this->getSymbolValue(arrName);
 		llvm::Type* type = this->getSymbolType(arrName);
-		node->SetType(typeByllvmType(type));
 		// auto arrSize = this->getArraySize(arrName);
 		llvm::Value* arrIdx = generate(node->GetArrayIndex());
 
