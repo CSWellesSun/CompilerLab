@@ -26,3 +26,4 @@ Type TypeSystem::getType(std::string identifier) {
 	LOG_ERROR("Don't Find!");
 	return Type::UNKNOWN;
 }
+void TypeSystem::analyze() {}

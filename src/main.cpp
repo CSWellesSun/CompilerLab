@@ -2,6 +2,7 @@
 #include "lexer/TokenStream.h"
 #include "parser/Parser.h"
 #include "preprocess/Preprocess.h"
+#include "typesystem/TypeSystem.h"
 #include <iostream>
 
 #ifdef _WIN32
@@ -26,6 +27,9 @@ int main(int argc, const char* argv[]) {
 	parser.parse();
 	parser.Dump();
 	cout << "\n";
-	CodeGenerator codeGenerator(parser.GetAst());
-	codeGenerator.Dump();
+	TypeSystem typeSystem(parser);
+
+
+	// CodeGenerator codeGenerator(parser.GetAst());
+	// codeGenerator.Dump();
 }
