@@ -98,8 +98,9 @@ public:
 class Declaration {
 public:
 	Declaration(std::string name, std::shared_ptr<TypeName> type = nullptr): m_name(name), m_type(std::move(type)) {}
-	const std::string& GetName() const { return m_name; }
-	const std::shared_ptr<TypeName>& GetDeclarationType() const { return m_type; }
+
+	GETS_M(GetName, m_name);
+	GETS_M(GetDeclarationType, m_type);
 
 protected:
 	std::string m_name;
@@ -127,7 +128,7 @@ public:
 		}
 	}
 
-	const auto& getSubNodes() const { return m_subnodes; } // for tranverse
+	GETS_M(getSubNodes, m_subnodes); // for tranverse
 
 private:
 	std::vector<std::shared_ptr<BaseAST>> m_subnodes;
@@ -165,7 +166,8 @@ public:
 			m_expr->Dump(depth + 2, mask);
 		}
 	}
-	const auto& getVarDefExpr() const { return m_expr; }
+	
+	GETS_M(getVarDefExpr, m_expr);
 
 private:
 	std::shared_ptr<Expression> m_expr; // optional
@@ -191,7 +193,8 @@ public:
 			}
 		}
 	}
-	const auto& GetArgs() const { return params; }
+
+	GETS_M(GetArgs, params);
 
 private:
 	std::vector<std::shared_ptr<VariableDefinition>> params; // type, ident
@@ -218,7 +221,7 @@ public:
 		}
 	}
 
-	const auto& GetStatements() const { return m_stmts; }
+	GETS_M(GetStatements, m_stmts);
 
 private:
 	std::vector<std::shared_ptr<Statement>> m_stmts;
@@ -237,13 +240,8 @@ public:
 		m_ASTType = ElementASTTypes::FunctionDefinition;
 	}
 
-	const std::vector<std::shared_ptr<VariableDefinition>> GetArgs() const {
-		if (!m_param)
-			return {};
-		return m_param->GetArgs();
-	}
-
-	const std::shared_ptr<Block> GetBody() const { return m_block; }
+	GETS_M(GetParameterList, m_param);
+	GETS_M(GetBody, m_block);
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -308,7 +306,7 @@ public:
 		m_ASTType = ElementASTTypes::ReturnStatement;
 	}
 
-	std::shared_ptr<Expression> GetExpr() const { return m_expr; }
+	GETS_M(GetExpr, m_expr);
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -329,7 +327,7 @@ class PrimaryExpression: public Expression {
 public:
 	PrimaryExpression(std::string value): m_value(value) {}
 
-	const std::string& GetValue() const { return m_value; }
+	GETS_M(GetValue, m_value);
 
 protected:
 	std::string m_value;
@@ -508,10 +506,14 @@ private:
 
 class BinaryOp final: public Expression {
 public:
-	BinaryOp(std::shared_ptr<Expression> lhs, std::string binaryOp, std::shared_ptr<Expression> rhs)
+	BinaryOp(std::shared_ptr<Expression> lhs, Token binaryOp, std::shared_ptr<Expression> rhs)
 		: m_leftHandSide(std::move(lhs)), m_binaryOp(std::move(binaryOp)), m_rightHandSide(std::move(rhs)) {
 		m_ASTType = ElementASTTypes::BinaryOp;
 	}
+
+	std::shared_ptr<Expression> GetLeftHand() const { return m_leftHandSide; }
+	std::shared_ptr<Expression> GetRightHand() const { return m_rightHandSide; }
+	GETS_M(GetOp, m_binaryOp);
 
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
@@ -524,7 +526,7 @@ public:
 		m_leftHandSide->Dump(depth + 2, mask);
 
 		printIndent(depth + 1, mask);
-		std::cout << "binaryOp: " << m_binaryOp << '\n';
+		std::cout << "binaryOp: " << tokenToString(m_binaryOp) << '\n';
 
 		mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
@@ -536,23 +538,28 @@ public:
 
 private:
 	std::shared_ptr<Expression> m_leftHandSide;
-	std::string m_binaryOp;
+	Token m_binaryOp;
 	std::shared_ptr<Expression> m_rightHandSide;
 };
 
 class UnaryOp final: public Expression {
 public:
-	UnaryOp(std::string unaryOp, std::shared_ptr<Expression> subExpr, bool isPrefix)
+	UnaryOp(Token unaryOp, std::shared_ptr<Expression> subExpr, bool isPrefix)
 		: m_unaryOp(std::move(unaryOp)), m_subExpr(std::move(subExpr)), m_isPrefix(isPrefix) {
 		m_ASTType = ElementASTTypes::UnaryOp;
 	}
+
+	GETS_M(GetOp, m_unaryOp);
+	GETS_M(GetExpr, m_subExpr);
+	bool IsPrefix() const { return m_isPrefix; }
+
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "UnaryOpAST" << RESET << '\n';
 
 		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
-		std::cout << "unaryOp: " << (m_isPrefix ? "prefix " : "postfix ") << m_unaryOp << '\n';
+		std::cout << "unaryOp: " << (m_isPrefix ? "prefix " : "postfix ") << tokenToString(m_unaryOp) << '\n';
 
 		mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
@@ -562,7 +569,7 @@ public:
 	}
 
 private:
-	std::string m_unaryOp;
+	Token m_unaryOp;
 	std::shared_ptr<Expression> m_subExpr;
 	bool m_isPrefix;
 };
@@ -578,23 +585,31 @@ public:
 		m_ASTType = ElementASTTypes::IfStatement;
 	}
 
+	GETS_M(GetCondition, m_condition);
+	GETS_M(GetThenStatement, m_thenStatement);
+	GETS_M(GetElseStatement, m_elseStatement);
+
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "IfStatementAST" << RESET << '\n';
 
-		mask = set(mask, depth + 1);
+		if (m_thenStatement) {
+			mask = set(mask, depth + 1);
+		}
 		printIndent(depth + 1, mask);
 		std::cout << "condition: " << '\n';
 
 		m_condition->Dump(depth + 2, mask);
 
-		if (!m_thenStatement) {
-			mask = unset(mask, depth + 1);
-		}
-		printIndent(depth + 1, mask);
-		std::cout << "thenStatement: " << '\n';
+		if (m_thenStatement) {
+			if (!m_elseStatement) {
+				mask = unset(mask, depth + 1);
+			}
+			printIndent(depth + 1, mask);
+			std::cout << "thenStatement: " << '\n';
 
-		m_thenStatement->Dump(depth + 2, mask);
+			m_thenStatement->Dump(depth + 2, mask);
+		}
 
 		if (m_elseStatement) {
 			mask = unset(mask, depth + 1);
@@ -634,6 +649,9 @@ public:
 
 		m_body->Dump(depth + 2, mask);
 	}
+
+	GETS_M(GetConditionExpr, m_condition);
+	GETS_M(GetWhileLoopBody, m_body);
 
 private:
 	std::shared_ptr<Expression> m_condition;
@@ -679,6 +697,11 @@ public:
 		m_body->Dump(depth + 2, mask);
 	}
 
+	GETS_M(GetInitExpr, m_init);
+	GETS_M(GetConditionExpr, m_condition);
+	GETS_M(GetUpdateExpr, m_update);
+	GETS_M(GetForLoopBody, m_body);
+
 private:
 	std::shared_ptr<SimpleStatement> m_init;
 	std::shared_ptr<Expression> m_condition;
@@ -709,6 +732,9 @@ public:
 
 		m_condition->Dump(depth + 2, mask);
 	}
+
+	GETS_M(GetDoWhileLoopBody, m_body);
+	GETS_M(GetConditionExpr, m_condition);
 
 private:
 	std::shared_ptr<Statement> m_body;
