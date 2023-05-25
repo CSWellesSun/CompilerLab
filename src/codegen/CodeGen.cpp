@@ -86,8 +86,14 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return res;
 	}
 	case ElementASTTypes::ArrayDefinition: {
-		LOG_WARNING("Not implemented!");
-		return nullptr;
+		ArrayDefinition* node = dynamic_cast<ArrayDefinition*>(AstNode.get());
+		ASSERT(node != nullptr, "dynamic cast fails.");
+		llvm::Type* arrtype = getLLVMType(node->GetDeclarationType()->GetType());
+		llvm::Value* arrsize = generate(node->GetArraySize());
+		llvm::Value* res = m_Builder->CreateAlloca(arrtype, arrsize);
+		setSymbolValue(node->GetName(), res);
+		setSymbolType(node->GetName(), arrtype);
+		return res;
 	}
 	case ElementASTTypes::StructDefinition: {
 		LOG_WARNING("Not implemented!");
@@ -121,7 +127,8 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		// Create the function
 		std::vector<llvm::Type*> argTypes;
 		const auto& paralist = node->GetParameterList();
-		const auto& argsvt = (paralist != nullptr) ? paralist->GetArgs() : std::vector<std::shared_ptr<VariableDefinition> >{};
+		const auto& argsvt
+			= (paralist != nullptr) ? paralist->GetArgs() : std::vector<std::shared_ptr<VariableDefinition>>{};
 		for (const auto& arg: argsvt) {
 			argTypes.push_back(getLLVMType(arg->GetDeclarationType()->GetType()));
 		}
@@ -345,21 +352,21 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return nullptr;
 	}
 	case ElementASTTypes::WhileStatement: {
-		WhileStatement* node = dynamic_cast<WhileStatement *>(AstNode.get());
+		WhileStatement* node = dynamic_cast<WhileStatement*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
 		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
-		llvm::BasicBlock *block = llvm::BasicBlock::Create(*m_Context);
-		llvm::BasicBlock *after = llvm::BasicBlock::Create(*m_Context);
+		llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context);
+		llvm::BasicBlock* after = llvm::BasicBlock::Create(*m_Context);
 
 		llvm::Value* condition = generate(node->GetConditionExpr());
-		
+
 		// according to parser, condition won't be nullptr
-	/*
-		if (condition == nullptr) {
-			LOG_INFO("Maybe an invalid while loop condition.");
-			return nullptr;
-		}
-	*/
+		/*
+			if (condition == nullptr) {
+				LOG_INFO("Maybe an invalid while loop condition.");
+				return nullptr;
+			}
+		*/
 		m_Builder->CreateCondBr(condition, block, after);
 		m_Builder->SetInsertPoint(block);
 		function->getBasicBlockList().push_back(block);
@@ -378,27 +385,26 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return nullptr;
 	}
 	case ElementASTTypes::ForStatement: {
-		
-		ForStatement* node = dynamic_cast<ForStatement *>(AstNode.get());
+		ForStatement* node = dynamic_cast<ForStatement*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
 		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
-		llvm::BasicBlock *block = llvm::BasicBlock::Create(*m_Context);
-		llvm::BasicBlock *after = llvm::BasicBlock::Create(*m_Context);
+		llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context);
+		llvm::BasicBlock* after = llvm::BasicBlock::Create(*m_Context);
 
 		if (node->GetInitExpr() != nullptr) {
 			generate(node->GetInitExpr());
 		}
 
 		// We assume no empty condition, such as for (;;)
-		llvm::Value *condition = generate(node->GetConditionExpr());
+		llvm::Value* condition = generate(node->GetConditionExpr());
 
 		// according to parser, condition won't be nullptr
-	/*
-		if (condition == nullptr) {
-			LOG_INFO("Maybe an invalid for loop condition.");
-			return nullptr;
-		}
-	*/
+		/*
+			if (condition == nullptr) {
+				LOG_INFO("Maybe an invalid for loop condition.");
+				return nullptr;
+			}
+		*/
 		m_Builder->CreateCondBr(condition, block, after);
 		m_Builder->SetInsertPoint(block);
 		function->getBasicBlockList().push_back(block);
@@ -420,18 +426,18 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return nullptr;
 	}
 	case ElementASTTypes::DoWhileStatement: {
-		DoWhileStatement* node = dynamic_cast<DoWhileStatement *>(AstNode.get());
+		DoWhileStatement* node = dynamic_cast<DoWhileStatement*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
 		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
-		llvm::BasicBlock *block = llvm::BasicBlock::Create(*m_Context);
-		llvm::BasicBlock *after = llvm::BasicBlock::Create(*m_Context);
+		llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context);
+		llvm::BasicBlock* after = llvm::BasicBlock::Create(*m_Context);
 		m_Builder->SetInsertPoint(block);
 		function->getBasicBlockList().push_back(block);
 		pushBlock();
 		generate(node->GetDoWhileLoopBody());
 		popBlock();
 
-		llvm::Value *condition = generate(node->GetConditionExpr());
+		llvm::Value* condition = generate(node->GetConditionExpr());
 		m_Builder->CreateCondBr(condition, block, after);
 		function->getBasicBlockList().push_back(after);
 		m_Builder->SetInsertPoint(after);
@@ -486,4 +492,4 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		// Not implemented!
 		return nullptr;
 	} // switch
-} 
+}
