@@ -249,11 +249,11 @@ bool TokenStream::tokenizeNumber() {
 	bool res = true;
 	bool floatFlag = false;
 
-	auto right_bound = std::find_if(m_striter, m_source.cend(), [&](const char ch) { 
+	auto right_bound = std::find_if(m_striter, m_source.cend(), [&](const char ch) {
 		if (ch == '.') {
 			floatFlag = true;
 		}
-		return issep(ch); 
+		return issep(ch);
 	});
 	std::string val = std::string(m_striter, right_bound);
 	if (val.size() > 1) {
@@ -282,7 +282,10 @@ bool TokenStream::tokenizeNumber() {
 			res = false;
 		}
 	}
-	addToken(Token::Number, std::move(val));
+	if (floatFlag)
+		addToken(Token::DoubleNumber, std::move(val));
+	else
+		addToken(Token::IntNumber, std::move(val));
 	m_striter = right_bound;
 	return res;
 }
