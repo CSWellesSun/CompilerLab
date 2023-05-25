@@ -24,17 +24,19 @@ class CodeGenerator {
 public:
 	CodeGenerator(const std::shared_ptr<BaseAST>& AstRoot) {
 		m_BlockStack.push_back({nullptr, {}, {}, {}});
-
+		createSyscall();
 		generate(AstRoot);
 		LOG_INFO("Codegen  Succeeds.");
 	}
 	void Dump() const { m_Module->print(llvm::errs(), nullptr); }
+	void srctollFile(const std::string& srcfilename) const;
 
 private:
 	static std::unique_ptr<llvm::LLVMContext> m_Context;
 	static std::unique_ptr<llvm::IRBuilder<>> m_Builder;
 	static std::unique_ptr<llvm::Module> m_Module;
 	std::vector<CodeGeneratorBlock> m_BlockStack;
+	std::map<std::string, llvm::Function*> m_syscalls;
 
 	/**
 	 * @brief Generate LLVM IR from AST
@@ -61,16 +63,6 @@ private:
 		return nullptr;
 	};
 	llvm::Value* getReturnValue() const { return m_BlockStack.back().returnValue; };
-	/*
-	llvm::Value* getArraySize(const std::string& name) const {
-		for (auto it = m_BlockStack.rbegin(); it != m_BlockStack.rend(); ++it) {
-			auto arrSizeIter = it->arrSizes.find(name);
-			if (arrSizeIter != it->arrSizes.end()) {
-				return arrSizeIter->second;
-			}
-		}
-		return nullptr;
-	};*/
 	void setSymbolValue(const std::string& name, llvm::Value* value) { m_BlockStack.back().locals[name] = value; };
 	void setSymbolType(const std::string& name, llvm::Type* type) { m_BlockStack.back().types[name] = type; };
 	void setReturnValue(llvm::Value* value) { m_BlockStack.back().returnValue = value; };
@@ -80,6 +72,8 @@ private:
 
 	llvm::Constant* getInitValue(Token tok);
 	llvm::Type* getLLVMType(Token type);
+
+	void createSyscall();
 };
 
 } // minisolc

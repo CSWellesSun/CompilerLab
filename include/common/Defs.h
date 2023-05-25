@@ -14,7 +14,8 @@
 #ifndef __GNUC__
 #define __PRETTY_FUNCTION__ __FUNCTION__
 #endif
-#define PRINT_LOCATE printf(GRAY "In file %s, function %s, line %d " RESET, __FILE__, __PRETTY_FUNCTION__, __LINE__)
+#define PRINT_LOCATE \
+	fprintf(stderr, GRAY "In file %s, function %s, line %d " RESET, __FILE__, __PRETTY_FUNCTION__, __LINE__)
 
 #if OUTPUT_TIME_ENABLE
 #define TIME_STR GRAY __DATE__ " " __TIME__ RESET " "
@@ -22,7 +23,7 @@
 #define TIME_STR
 #endif
 
-#define PRINT_TIME printf(GRAY __DATE__ " " __TIME__ RESET " ")
+#define PRINT_TIME fprintf(stderr, GRAY __DATE__ " " __TIME__ RESET " ")
 
 #define RESET "\033[0m"
 #define RED "\033[31m"	  /* Red */
@@ -38,43 +39,43 @@
 #define DARKYELLOW "\033[1;33m"
 
 
-#define LOG_ERROR_EXIT(fmt, ...)                     \
-	do {                                             \
-		printf(TIME_STR "[" RED "ERROR" RESET "] "); \
-		PRINT_LOCATE;                                \
-		printf(fmt "\n", ##__VA_ARGS__);             \
-		exit(1);                                     \
+#define LOG_ERROR_EXIT(fmt, ...)                              \
+	do {                                                      \
+		fprintf(stderr, TIME_STR "[" RED "ERROR" RESET "] "); \
+		PRINT_LOCATE;                                         \
+		fprintf(stderr, fmt "\n", ##__VA_ARGS__);             \
+		exit(1);                                              \
 	} while (0)
 
-#define LOG_ERROR(fmt, ...)                          \
-	do {                                             \
-		printf(TIME_STR "[" RED "ERROR" RESET "] "); \
-		PRINT_LOCATE;                                \
-		printf(fmt "\n", ##__VA_ARGS__);             \
+#define LOG_ERROR(fmt, ...)                                   \
+	do {                                                      \
+		fprintf(stderr, TIME_STR "[" RED "ERROR" RESET "] "); \
+		PRINT_LOCATE;                                         \
+		fprintf(stderr, fmt "\n", ##__VA_ARGS__);             \
 	} while (0)
-#define LOG_WARNING(fmt, ...)                             \
-	do {                                                  \
-		printf(TIME_STR "[" YELLOW "WARNING" RESET "] "); \
-		PRINT_LOCATE;                                     \
-		printf(fmt "\n", ##__VA_ARGS__);                  \
+#define LOG_WARNING(fmt, ...)                                      \
+	do {                                                           \
+		fprintf(stderr, TIME_STR "[" YELLOW "WARNING" RESET "] "); \
+		PRINT_LOCATE;                                              \
+		fprintf(stderr, fmt "\n", ##__VA_ARGS__);                  \
 	} while (0)
-#define LOG_INFO(fmt, ...) printf(TIME_STR "[" GREEN "INFO" RESET "] " fmt "\n", ##__VA_ARGS__)
-#define ASSERT_EXIT(expr, message)                    \
-	do {                                              \
-		if (!(expr)) {                                \
-			printf("[" RED "ERROR" RESET "] ");       \
-			PRINT_LOCATE;                             \
-			printf("Assertion fails! %s\n", message); \
-			exit(1);                                  \
-		}                                             \
+#define LOG_INFO(fmt, ...) fprintf(stderr, TIME_STR "[" GREEN "INFO" RESET "] " fmt "\n", ##__VA_ARGS__)
+#define ASSERT_EXIT(expr, message)                             \
+	do {                                                       \
+		if (!(expr)) {                                         \
+			fprintf(stderr, "[" RED "ERROR" RESET "] ");       \
+			PRINT_LOCATE;                                      \
+			fprintf(stderr, "Assertion fails! %s\n", message); \
+			exit(1);                                           \
+		}                                                      \
 	} while (0)
-#define ASSERT(expr, message)                         \
-	do {                                              \
-		if (!(expr)) {                                \
-			printf("[" YELLOW "WARNING" RESET "] ");  \
-			PRINT_LOCATE;                             \
-			printf("Assertion fails! %s\n", message); \
-		}                                             \
+#define ASSERT(expr, message)                                  \
+	do {                                                       \
+		if (!(expr)) {                                         \
+			fprintf(stderr, "[" YELLOW "WARNING" RESET "] ");  \
+			PRINT_LOCATE;                                      \
+			fprintf(stderr, "Assertion fails! %s\n", message); \
+		}                                                      \
 	} while (0)
 #else
 #define PRINT_LOCATE
@@ -117,6 +118,7 @@ public:                                                                         
 #define PrivateGetBuilder(type, name) \
 private:                              \
 	type m_##name;                    \
+                                      \
 public:                               \
 	GETS_M(Get##name, m_##name)
 

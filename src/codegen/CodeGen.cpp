@@ -5,6 +5,7 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
 #include <memory>
+#include <fstream>
 
 using namespace minisolc;
 
@@ -41,7 +42,7 @@ llvm::Type* CodeGenerator::getLLVMType(Token type) {
 	case Token::UInt:
 		return llvm::Type::getInt32Ty(*m_Context);
 	case Token::String:
-		return nullptr;
+		return llvm::Type::getInt8PtrTy(*m_Context);
 	case Token::Bool:
 		return llvm::Type::getInt1Ty(*m_Context);
 	case Token::Float:
@@ -68,10 +69,11 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 	case ElementASTTypes::PlainVariableDefinition: {
 		const PlainVariableDefinition* node = dynamic_cast<const PlainVariableDefinition*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
-		llvm::Type* type = getLLVMType(node->GetDeclarationType()->GetType());
-		llvm::Value* res = m_Builder->CreateAlloca(type, nullptr);
+		Token type = node->GetDeclarationType()->GetType();
+		llvm::Type* llvmType = getLLVMType(type);
+		llvm::Value* res = m_Builder->CreateAlloca(llvmType, nullptr);
 		setSymbolValue(node->GetName(), res);
-		setSymbolType(node->GetName(), type);
+		setSymbolType(node->GetName(), llvmType);
 
 		auto& expr = node->getVarDefExpr();
 		if (expr != nullptr) {
@@ -79,8 +81,9 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 				std::make_shared<Assignment>(std::make_shared<Identifier>(node->GetName()), Token::Assign, expr));
 		} else {
 			// initialize the variable, maybe change later
-			llvm::Value* value = getInitValue(node->GetDeclarationType()->GetType());
-			m_Builder->CreateStore(value, res);
+			llvm::Value* value = getInitValue(type);
+			if (value != nullptr)
+				m_Builder->CreateStore(value, res);
 		}
 
 		return res;
@@ -201,7 +204,23 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return llvm::ConstantInt::get(m_Builder->getInt1Ty(), value);
 	}
 	case ElementASTTypes::StringLiteral: {
-		return nullptr;
+		std::string valueString = dynamic_cast<const StringLiteral*>(AstNode.get())->GetValue();
+		valueString = valueString.substr(1, valueString.size() - 2); // remove ""
+		size_t stridx;
+
+		// escape character
+		if ((stridx = valueString.find("\\n")) != std::string::npos) {
+			valueString.replace(stridx, 2, "\n");
+		}
+		if ((stridx = valueString.find("\\r")) != std::string::npos) {
+			valueString.replace(stridx, 2, "\r");
+		}
+		if ((stridx = valueString.find("\\t")) != std::string::npos) {
+			valueString.replace(stridx, 2, "\t");
+		}
+
+		auto res = m_Builder->CreateGlobalStringPtr(llvm::StringRef(valueString));
+		return res;
 	}
 	case ElementASTTypes::NumberLiteral: {
 		/// TODO: check its type
@@ -498,14 +517,15 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 	case ElementASTTypes::FunctionCall: {
 		const FunctionCall* node = dynamic_cast<const FunctionCall*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
-		llvm::Function* func = m_Module->getFunction(node->GetFunctionName());
+		const std::string& funcName = node->GetFunctionName();
+		llvm::Function* func = m_Module->getFunction(funcName);
 		if (func == nullptr) {
-			LOG_ERROR("Function %s not found.", node->GetFunctionName().c_str());
+			LOG_ERROR("Function %s not found.", funcName.c_str());
 			return nullptr;
 		}
 
-		if (func->arg_size() != node->GetArgs().size()) {
-			LOG_ERROR("Function %s argument size mismatch.", node->GetFunctionName().c_str());
+		if (func->arg_size() != node->GetArgs().size() && func->isVarArg() == false) {
+			LOG_ERROR("Function %s argument size mismatch.", funcName.c_str());
 			return nullptr;
 		}
 
@@ -513,7 +533,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		for (const auto& arg: node->GetArgs()) {
 			args.push_back(generate(arg));
 			if (args.back() == nullptr) {
-				LOG_ERROR("Function %s argument generation failed.", node->GetFunctionName().c_str());
+				LOG_ERROR("Function %s argument generation failed.", funcName.c_str());
 				return nullptr;
 			}
 		}
@@ -527,4 +547,43 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		// Not implemented!
 		return nullptr;
 	} // switch
+}
+
+void CodeGenerator::createSyscall() {
+	using namespace std::literals;
+	/* scanf */
+	llvm::FunctionType* scanf_type = llvm::FunctionType::get(m_Builder->getInt32Ty(), true);
+	llvm::Function* scanf_func = llvm::Function::Create(scanf_type, llvm::Function::ExternalLinkage, llvm::Twine("scanf"), m_Module.get());
+	scanf_func->setCallingConv(llvm::CallingConv::C);
+	m_syscalls.emplace("scanf"s, std::move(scanf_func));
+
+	/* printf */
+	std::vector<llvm::Type*> arg_types;
+	arg_types.push_back(m_Builder->getInt8PtrTy());
+	auto printf_type = llvm::FunctionType::get(m_Builder->getInt32Ty(), llvm::makeArrayRef(arg_types), true);
+	auto printf_func = llvm::Function::Create(printf_type, llvm::Function::ExternalLinkage, llvm::Twine("printf"), m_Module.get());
+	printf_func->setCallingConv(llvm::CallingConv::C);
+	m_syscalls.emplace("printf"s, std::move(printf_func));
+	
+	return;
+}
+
+
+void CodeGenerator::srctollFile(const std::string& srcfilename) const {
+	size_t stridx = srcfilename.rfind(".");
+	if (srcfilename.substr(stridx + 1) != "sol") {
+		// The suffix name should be .sol
+		LOG_WARNING("Maybe invalid source file.");
+	}
+	// Change the suffix name to .ll
+	std::string desfilename = srcfilename.substr(0, stridx + 1) + "ll";
+
+	std::error_code ec;
+	llvm::raw_fd_stream ofs {llvm::StringRef(desfilename), ec};
+	m_Module->print(ofs, nullptr);
+
+	if (bool(ec)) {
+		LOG_WARNING("to .ll file fails. %s", ec.message().c_str());
+	}
+	return;
 }
