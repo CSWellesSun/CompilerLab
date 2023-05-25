@@ -428,6 +428,7 @@ public:
 		m_size->Dump(depth + 2, mask);
 	}
 
+	GETS_M(GetArraySize, m_size);
 private:
 	std::shared_ptr<Expression> m_size;
 };
@@ -807,8 +808,10 @@ public:
 		m_index->Dump(depth + 2, mask);
 	}
 
+	GETS_M(GetArrayName, m_expr);
+	GETS_M(GetArrayIndex, m_index);
 private:
-	std::shared_ptr<Expression> m_expr;
+	std::shared_ptr<Expression> m_expr; // array name
 	std::shared_ptr<Expression> m_index;
 };
 

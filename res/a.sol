@@ -1,11 +1,5 @@
-function main() returns () {
-    double a = 3.0;
-    a = a++ + 3.0;
-    a = ++a + 3.0;
-
-    int i = 0;
-    do {
-        ++i;
-        a = a + i;
-    } while ( i < 10 );
+function main() returns (int) {
+    string s = "Hello World!";
+    printf("%s\n", s);
+    return 0;
 }

@@ -19,17 +19,23 @@ int main(int argc, const char* argv[]) {
 	auto input = argv[1];
 	Preprocess preprocess(input);
 	preprocess.Dump();
-	cout << "\n";
+	cout << '\n';
 	TokenStream tokenStream(preprocess);
 	tokenStream.Dump();
 	cout << "\n\n";
 	Parser parser(tokenStream);
 	parser.parse();
 	parser.Dump();
-	cout << "\n";
-	TypeSystem typeSystem(parser);
+	cout << '\n';
+	CodeGenerator codeGenerator(parser.GetAst());
+	codeGenerator.Dump();
+	codeGenerator.srctollFile(input);
 
-
-	// CodeGenerator codeGenerator(parser.GetAst());
-	// codeGenerator.Dump();
+	/* 	After obtaining .ll file,
+		using llvm-as to convert .ll to .bc (llvm bitcode)
+		and use clang to convert .bc to executable file
+		For example:
+			llvm-as ./res/a.ll
+			clang ./res/a.bc -o a.out
+	*/
 }
