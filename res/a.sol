@@ -1,11 +1,10 @@
 function main() returns () {
-    double a = 3.0;
-    a = a++ + 3.0;
-    a = ++a + 3.0;
+//    double a = 3.0;
+//    a = a++ + 3.0;
+//    a = ++a + 3.0;
 
-    int i = 0;
-    do {
-        ++i;
-        a = a + i;
-    } while ( i < 10 );
+    int arr[10];
+    arr[0] = 1;
+
+    int b = arr[1];
 }

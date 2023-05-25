@@ -8,6 +8,8 @@
 #include <llvm/IR/Value.h>
 #include <memory>
 #include <vector>
+#include <map>
+#include <algorithm>
 
 namespace minisolc {
 
@@ -15,12 +17,13 @@ struct CodeGeneratorBlock {
 	llvm::Value* returnValue;
 	std::map<std::string, llvm::Value*> locals;
 	std::map<std::string, llvm::Type*> types;
+	std::map<std::string, llvm::Value*> arrSizes;
 };
 
 class CodeGenerator {
 public:
 	CodeGenerator(const std::shared_ptr<BaseAST>& AstRoot) {
-		m_BlockStack.push_back({nullptr, {}, {}});
+		m_BlockStack.push_back({nullptr, {}, {}, {}});
 
 		generate(AstRoot);
 		LOG_INFO("Codegen  Succeeds.");
@@ -58,10 +61,20 @@ private:
 		return nullptr;
 	};
 	llvm::Value* getReturnValue() const { return m_BlockStack.back().returnValue; };
+	/*
+	llvm::Value* getArraySize(const std::string& name) const {
+		for (auto it = m_BlockStack.rbegin(); it != m_BlockStack.rend(); ++it) {
+			auto arrSizeIter = it->arrSizes.find(name);
+			if (arrSizeIter != it->arrSizes.end()) {
+				return arrSizeIter->second;
+			}
+		}
+		return nullptr;
+	};*/
 	void setSymbolValue(const std::string& name, llvm::Value* value) { m_BlockStack.back().locals[name] = value; };
 	void setSymbolType(const std::string& name, llvm::Type* type) { m_BlockStack.back().types[name] = type; };
 	void setReturnValue(llvm::Value* value) { m_BlockStack.back().returnValue = value; };
-	void pushBlock() { m_BlockStack.push_back({nullptr, {}, {}}); };
+	void pushBlock() { m_BlockStack.push_back({nullptr, {}, {}, {}}); };
 	void popBlock() { m_BlockStack.pop_back(); };
 
 

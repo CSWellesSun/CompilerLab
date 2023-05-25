@@ -112,7 +112,7 @@ char const* minisolc::typeToString(Type type) {
 		return "FLOAT";
 	case Type::STRING:
 		return "STRING";
-	case Type::UNKNOWN:
+	default:
 		return "UNKNOWN";
 	}
 }

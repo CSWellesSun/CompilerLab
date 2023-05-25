@@ -13,7 +13,7 @@ target("compiler")
         add_includedirs("/usr/lib/llvm-14/include")
         add_toolchains("llvm") -- 使用llvm工具链
     end
-    set_toolset("ld", "/usr/bin/clang++")
+    set_toolset("ld", "/usr/bin/g++")
     add_cxxflags("-Wall", "-Wextra", "-Werror", "-Wno-unused", "-Wno-unused-parameter")
     set_languages("c++17")
 

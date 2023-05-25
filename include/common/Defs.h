@@ -38,12 +38,19 @@
 #define DARKYELLOW "\033[1;33m"
 
 
-#define LOG_ERROR(fmt, ...)                          \
+#define LOG_ERROR_EXIT(fmt, ...)                     \
 	do {                                             \
 		printf(TIME_STR "[" RED "ERROR" RESET "] "); \
 		PRINT_LOCATE;                                \
 		printf(fmt "\n", ##__VA_ARGS__);             \
 		exit(1);                                     \
+	} while (0)
+
+#define LOG_ERROR(fmt, ...)                          \
+	do {                                             \
+		printf(TIME_STR "[" RED "ERROR" RESET "] "); \
+		PRINT_LOCATE;                                \
+		printf(fmt "\n", ##__VA_ARGS__);             \
 	} while (0)
 #define LOG_WARNING(fmt, ...)                             \
 	do {                                                  \

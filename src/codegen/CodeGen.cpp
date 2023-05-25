@@ -66,7 +66,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return nullptr;
 	}
 	case ElementASTTypes::PlainVariableDefinition: {
-		PlainVariableDefinition* node = dynamic_cast<PlainVariableDefinition*>(AstNode.get());
+		const PlainVariableDefinition* node = dynamic_cast<const PlainVariableDefinition*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
 		llvm::Type* type = getLLVMType(node->GetDeclarationType()->GetType());
 		llvm::Value* res = m_Builder->CreateAlloca(type, nullptr);
@@ -86,13 +86,14 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return res;
 	}
 	case ElementASTTypes::ArrayDefinition: {
-		ArrayDefinition* node = dynamic_cast<ArrayDefinition*>(AstNode.get());
+		const ArrayDefinition* node = dynamic_cast<const ArrayDefinition*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
-		llvm::Type* arrtype = getLLVMType(node->GetDeclarationType()->GetType());
-		llvm::Value* arrsize = generate(node->GetArraySize());
-		llvm::Value* res = m_Builder->CreateAlloca(arrtype, arrsize);
+		llvm::Type* arrType = getLLVMType(node->GetDeclarationType()->GetType());
+		llvm::Value* arrSize = generate(node->GetArraySize());
+		llvm::Value* res = m_Builder->CreateAlloca(arrType, arrSize);
+		m_BlockStack.back().arrSizes[node->GetName()] = arrSize;
 		setSymbolValue(node->GetName(), res);
-		setSymbolType(node->GetName(), arrtype);
+		setSymbolType(node->GetName(), arrType);
 		return res;
 	}
 	case ElementASTTypes::StructDefinition: {
@@ -205,16 +206,39 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 	case ElementASTTypes::NumberLiteral: {
 		/// TODO: check its type
 		std::string valueString = dynamic_cast<const NumberLiteral*>(AstNode.get())->GetValue();
-		double value = std::stod(valueString);
-		return llvm::ConstantFP::get(m_Builder->getDoubleTy(), value);
+		llvm::Constant* res;
+		try {
+			if (valueString.find('.') != std::string::npos) {
+				/* double */
+				double value = std::stod(valueString);
+				res = llvm::ConstantFP::get(m_Builder->getDoubleTy(), value);
+			} else {
+				/* integer */
+				uint32_t value = static_cast<uint32_t>(std::stoi(valueString));
+				res = m_Builder->getInt32(value);
+			}
+		} catch (std::exception& e) {
+			LOG_ERROR("Number Literial fails, %s", e.what());
+		}
+		
+		return res;
 	}
 	case ElementASTTypes::Assignment: {
 		const Assignment* node = dynamic_cast<const Assignment*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
-		const Identifier* leftHand = dynamic_cast<const Identifier*>(node->GetLeftHand().get());
-		ASSERT(leftHand != nullptr, "dynamic cast fails.");
-		llvm::Value* leftHandValue = getSymbolValue(leftHand->GetValue());
-		llvm::Value* rightHandValue = generate(node->GetRightHand());
+		llvm::Value  *leftHandValue, *rightHandValue;
+		if (node->GetLeftHand()->GetASTType() == ElementASTTypes::Identifier) {
+			const Identifier* leftHand = dynamic_cast<const Identifier*>(node->GetLeftHand().get());
+			ASSERT(leftHand != nullptr, "dynamic cast fails.");
+			leftHandValue = getSymbolValue(leftHand->GetValue());
+			rightHandValue = generate(node->GetRightHand());
+		} else if (node->GetLeftHand()->GetASTType() == ElementASTTypes::IndexAccess) {
+			leftHandValue = generate(node->GetLeftHand());
+			rightHandValue = generate(node->GetRightHand());
+		} else {
+			LOG_ERROR("Invalid type in assignment.");
+			return nullptr;
+		}
 		Token assignmentOp = node->GetAssigmentOp();
 		if (assignmentOp == Token::Assign) {
 			return m_Builder->CreateStore(rightHandValue, leftHandValue);
@@ -311,7 +335,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return nullptr;
 	}
 	case ElementASTTypes::IfStatement: {
-		IfStatement* node = dynamic_cast<IfStatement*>(AstNode.get());
+		const IfStatement* node = dynamic_cast<const IfStatement*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
 		llvm::Value* condition = generate(node->GetCondition());
 		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
@@ -352,7 +376,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return nullptr;
 	}
 	case ElementASTTypes::WhileStatement: {
-		WhileStatement* node = dynamic_cast<WhileStatement*>(AstNode.get());
+		const WhileStatement* node = dynamic_cast<const WhileStatement*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
 		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
 		llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context);
@@ -385,7 +409,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return nullptr;
 	}
 	case ElementASTTypes::ForStatement: {
-		ForStatement* node = dynamic_cast<ForStatement*>(AstNode.get());
+		const ForStatement* node = dynamic_cast<const ForStatement*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
 		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
 		llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context);
@@ -426,7 +450,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return nullptr;
 	}
 	case ElementASTTypes::DoWhileStatement: {
-		DoWhileStatement* node = dynamic_cast<DoWhileStatement*>(AstNode.get());
+		const DoWhileStatement* node = dynamic_cast<const DoWhileStatement*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
 		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
 		llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context);
@@ -457,8 +481,20 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return generate(node->GetExpr());
 	}
 	case ElementASTTypes::IndexAccess: {
-		LOG_WARNING("Not implemented");
-		return nullptr;
+		IndexAccess* node = dynamic_cast<IndexAccess*>(AstNode.get());
+		const auto arrIdentifier = std::dynamic_pointer_cast<Identifier>(node->GetArrayName());
+		const std::string& arrName = arrIdentifier->GetValue();
+		auto varptr = this->getSymbolValue(arrName);
+		llvm::Type* type = this->getSymbolType(arrName);
+		node->SetType(typeByllvmType(type));
+		// auto arrSize = this->getArraySize(arrName);
+		llvm::Value* arrIdx = generate(node->GetArrayIndex());
+
+		auto ptr = m_Builder->CreateInBoundsGEP(type, varptr, arrIdx);
+		
+		auto res = m_Builder->CreateAlignedLoad(type, ptr, llvm::MaybeAlign(4ull));
+
+		return res;
 	}
 	case ElementASTTypes::FunctionCall: {
 		const FunctionCall* node = dynamic_cast<const FunctionCall*>(AstNode.get());
