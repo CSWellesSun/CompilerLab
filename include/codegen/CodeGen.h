@@ -42,9 +42,10 @@ private:
 	 * @brief Generate LLVM IR from AST
 	 * @param AstRoot The root of AST
 	 * @param beginBlock Whether to begin a new block when encounter a block node
+	 * @param isArrIdxLeftVal Used in array, determine whether returns a pointer (for leftvalue) or a value (for right value)
 	 * @return The value of the AST
 	 */
-	llvm::Value* generate(const std::shared_ptr<BaseAST>& AstRoot, bool beginBlock = true);
+	llvm::Value* generate(const std::shared_ptr<BaseAST>& AstRoot, bool beginBlock = true, bool isArrIdxLeftVal = false);
 
 	llvm::Value* getSymbolValue(const std::string& name) const {
 		for (auto it = m_BlockStack.rbegin(); it != m_BlockStack.rend(); ++it) {

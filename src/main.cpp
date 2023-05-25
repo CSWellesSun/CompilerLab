@@ -35,6 +35,6 @@ int main(int argc, const char* argv[]) {
 	 	and use clang to convert .bc to executable file
 		For example:
 			llvm-as ./res/a.ll
-			clang ./res/a.bc -o a.out
+			clang ./res/a.bc -o ./res/a.out
 	*/
 }
