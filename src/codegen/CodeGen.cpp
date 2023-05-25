@@ -56,7 +56,7 @@ llvm::Type* CodeGenerator::getLLVMType(Token type) {
 	}
 }
 
-llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bool beginBlock) {
+llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bool beginBlock, bool isleftval) {
 	switch (AstNode->GetASTType()) {
 	case ElementASTTypes::SourceUnit: {
 		const SourceUnit* node = dynamic_cast<const SourceUnit*>(AstNode.get());
@@ -252,7 +252,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 			leftHandValue = getSymbolValue(leftHand->GetValue());
 			rightHandValue = generate(node->GetRightHand());
 		} else if (node->GetLeftHand()->GetASTType() == ElementASTTypes::IndexAccess) {
-			leftHandValue = generate(node->GetLeftHand());
+			leftHandValue = generate(node->GetLeftHand(), true, true);
 			rightHandValue = generate(node->GetRightHand());
 		} else {
 			LOG_ERROR("Invalid type in assignment.");
@@ -511,8 +511,17 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		auto ptr = m_Builder->CreateInBoundsGEP(type, varptr, arrIdx);
 		
 		auto res = m_Builder->CreateAlignedLoad(type, ptr, llvm::MaybeAlign(4ull));
+		/*
+			When IndexAccess is a left value, for example,
+				a[1] = 10;
+			we return a pointer to a[1], allowing us to write the address.
+			When IndexAccess is a right value, for example,
+				i = a[0];
+			we return the value of a[0].
 
-		return res;
+			This may not be elegant, hope to improve it in the future.
+		*/
+		return isleftval ? ptr : res;
 	}
 	case ElementASTTypes::FunctionCall: {
 		const FunctionCall* node = dynamic_cast<const FunctionCall*>(AstNode.get());
