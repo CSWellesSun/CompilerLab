@@ -5,7 +5,7 @@
 #include "parser/Ast.h"
 
 
-#include <llvm-14/llvm/IR/Value.h>
+#include <llvm/IR/Value.h>
 #include <memory>
 #include <vector>
 

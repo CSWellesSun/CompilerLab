@@ -79,7 +79,17 @@ protected:
 
 class Statement: public BaseAST {};
 class SimpleStatement: public Statement {};
-class Expression: public BaseAST {};
+class Expression: public BaseAST {
+public:
+	Type GetType() const { return m_type; }
+	Type GetCastType() const { return m_castType; }
+	void SetType(Type type) { m_type = type; }
+	void SetCastType(Type type) { m_castType = type; }
+
+protected:
+	Type m_type = Type::UNKNOWN;
+	Type m_castType = Type::UNKNOWN;
+};
 class TypeName: public BaseAST {
 public:
 	virtual Token GetType() = 0;
@@ -330,14 +340,26 @@ public:
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "IdentifierAST" << RESET << '\n';
 
+		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "value: " << m_value << '\n';
+
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << typeToString(m_type) << '\n';
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "castType: " << typeToString(m_castType) << '\n';
 	}
 };
 
 class BooleanLiteral final: public PrimaryExpression {
 public:
-	BooleanLiteral(std::string value): PrimaryExpression(value) { m_ASTType = ElementASTTypes::BooleanLiteral; }
+	BooleanLiteral(std::string value): PrimaryExpression(value) {
+		m_ASTType = ElementASTTypes::BooleanLiteral;
+		SetType(Type::BOOLEAN);
+		SetCastType(Type::BOOLEAN);
+	}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "BooleanLiteralAST" << RESET << '\n';
@@ -349,7 +371,11 @@ public:
 
 class StringLiteral final: public PrimaryExpression {
 public:
-	StringLiteral(std::string value): PrimaryExpression(value) { m_ASTType = ElementASTTypes::StringLiteral; }
+	StringLiteral(std::string value): PrimaryExpression(value) {
+		m_ASTType = ElementASTTypes::StringLiteral;
+		SetType(Type::STRING);
+		SetCastType(Type::STRING);
+	}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "StringLiteralAST" << RESET << '\n';
@@ -361,8 +387,10 @@ public:
 
 class NumberLiteral final: public PrimaryExpression {
 public:
-	NumberLiteral(std::string value /*, std::string unit = ""*/): PrimaryExpression(value) /*, m_unit(unit)*/ {
+	NumberLiteral(std::string value, Type type): PrimaryExpression(value) /*, m_unit(unit)*/ {
 		m_ASTType = ElementASTTypes::NumberLiteral;
+		SetType(type);
+		SetCastType(type);
 	}
 	void Dump(size_t depth, size_t mask) const override {
 		printIndent(depth, mask);
