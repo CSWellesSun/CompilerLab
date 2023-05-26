@@ -17,13 +17,12 @@ struct CodeGeneratorBlock {
 	llvm::Value* returnValue;
 	std::map<std::string, llvm::Value*> locals;
 	std::map<std::string, llvm::Type*> types;
-	std::map<std::string, llvm::Value*> arrSizes;
 };
 
 class CodeGenerator {
 public:
 	CodeGenerator(const std::shared_ptr<BaseAST>& AstRoot) {
-		m_BlockStack.push_back({nullptr, {}, {}, {}});
+		m_BlockStack.push_back({nullptr, {}, {}});
 		createSyscall();
 		generate(AstRoot);
 		LOG_INFO("Codegen  Succeeds.");
@@ -42,9 +41,10 @@ private:
 	 * @brief Generate LLVM IR from AST
 	 * @param AstRoot The root of AST
 	 * @param beginBlock Whether to begin a new block when encounter a block node
+	 * @param isArrIdxLeftVal Used in array, determine whether returns a pointer (for leftvalue) or a value (for right value)
 	 * @return The value of the AST
 	 */
-	llvm::Value* generate(const std::shared_ptr<BaseAST>& AstRoot, bool beginBlock = true);
+	llvm::Value* generate(const std::shared_ptr<BaseAST>& AstRoot, bool beginBlock = true, bool isArrIdxLeftVal = false);
 
 	llvm::Value* getSymbolValue(const std::string& name) const {
 		for (auto it = m_BlockStack.rbegin(); it != m_BlockStack.rend(); ++it) {
@@ -66,7 +66,7 @@ private:
 	void setSymbolValue(const std::string& name, llvm::Value* value) { m_BlockStack.back().locals[name] = value; };
 	void setSymbolType(const std::string& name, llvm::Type* type) { m_BlockStack.back().types[name] = type; };
 	void setReturnValue(llvm::Value* value) { m_BlockStack.back().returnValue = value; };
-	void pushBlock() { m_BlockStack.push_back({nullptr, {}, {}, {}}); };
+	void pushBlock() { m_BlockStack.push_back({nullptr, {}, {}}); };
 	void popBlock() { m_BlockStack.pop_back(); };
 
 
