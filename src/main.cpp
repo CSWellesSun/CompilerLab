@@ -2,6 +2,7 @@
 #include "lexer/TokenStream.h"
 #include "parser/Parser.h"
 #include "preprocess/Preprocess.h"
+#include "typesystem/TypeSystem.h"
 #include <iostream>
 
 #ifdef _WIN32
@@ -25,14 +26,16 @@ int main(int argc, const char* argv[]) {
 	Parser parser(tokenStream);
 	parser.parse();
 	parser.Dump();
+	TypeSystem typeSystem = TypeSystem(parser);
+	typeSystem.Dump();
 	cout << '\n';
 	CodeGenerator codeGenerator(parser.GetAst());
 	codeGenerator.Dump();
 	codeGenerator.srctollFile(input);
 
 	/* 	After obtaining .ll file,
-	 	using llvm-as to convert .ll to .bc (llvm bitcode)
-	 	and use clang to convert .bc to executable file
+		using llvm-as to convert .ll to .bc (llvm bitcode)
+		and use clang to convert .bc to executable file
 		For example:
 			llvm-as ./res/a.ll
 			clang ./res/a.bc -o ./res/a.out
