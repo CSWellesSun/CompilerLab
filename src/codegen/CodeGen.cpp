@@ -118,8 +118,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 			std::vector<llvm::Type*> stMems;
 			const auto& MemList = node->GetStructMemList();
 			llvm::Value* val;
-			for(const auto& mem : MemList) {
-				// val = generate(mem);
+			for (const auto& mem: MemList) {
 				stMems.push_back(getLLVMType(mem->GetDeclarationType()->GetType()));
 				myStruct->AddElementName(mem->GetName());
 			}
@@ -129,7 +128,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 			m_BlockStack.back().structdefs.push_back(std::move(myStruct));
 			res = nullptr;
 		}
-		
+
 		return res;
 	}
 	case ElementASTTypes::Block: {
@@ -274,34 +273,74 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 	case ElementASTTypes::Assignment: {
 		const Assignment* node = dynamic_cast<const Assignment*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
-		llvm::Value  *leftHandValue, *rightHandValue;
+		llvm::Value *leftHandValue, *rightHandValue;
 		switch (node->GetLeftHand()->GetASTType()) {
-			case ElementASTTypes::Identifier : {
-				const Identifier* leftHand = dynamic_cast<const Identifier*>(node->GetLeftHand().get());
-				ASSERT(leftHand != nullptr, "dynamic cast fails.");
-				leftHandValue = getSymbolValue(leftHand->GetValue());
-				rightHandValue = generate(node->GetRightHand());
-				break;
-			}
-			case ElementASTTypes::IndexAccess:
-				[[fallthrough]];
-			case ElementASTTypes::MemberAccess:
-				leftHandValue = generate(node->GetLeftHand(), true, true);
-				rightHandValue = generate(node->GetRightHand());
-				break;
-			default:
-				LOG_ERROR("Invalid type in assignment.");
-				return nullptr;
+		case ElementASTTypes::Identifier: {
+			const Identifier* leftHand = dynamic_cast<const Identifier*>(node->GetLeftHand().get());
+			ASSERT(leftHand != nullptr, "dynamic cast fails.");
+			leftHandValue = getSymbolValue(leftHand->GetValue());
+			rightHandValue = generate(node->GetRightHand());
+			break;
+		}
+		case ElementASTTypes::IndexAccess:
+			[[fallthrough]];
+		case ElementASTTypes::MemberAccess:
+			leftHandValue = generate(node->GetLeftHand(), true, true);
+			rightHandValue = generate(node->GetRightHand());
+			break;
+		case ElementASTTypes::StructDefinition: {
+			ASSERT(node->GetRightHand()->GetASTType() == ElementASTTypes::StructDefinition, "Invalid struct assignment.");
+			const auto leftStruct = std::dynamic_pointer_cast<StructDefinition>(node->GetLeftHand());
+			const auto rightStruct = std::dynamic_pointer_cast<StructDefinition>(node->GetRightHand());
+			ASSERT(leftStruct != nullptr && rightStruct != nullptr, "Dynamic cast fails.");
+			ASSERT(leftStruct->GetStructName() == rightStruct->GetStructName(), "Invalid struct assignment.");
+			leftHandValue = generate(node->GetLeftHand());
+			rightHandValue = generate(node->GetRightHand());
+			break;
+		}
+		default:
+			LOG_ERROR("Invalid type in assignment.");
+			return nullptr;
 		}
 
 		Token assignmentOp = node->GetAssigmentOp();
 		if (assignmentOp == Token::Assign) {
 			return m_Builder->CreateStore(rightHandValue, leftHandValue);
 		} else {
-			/* This maybe won't happen. */
-			LOG_ERROR("Invalid Assignment operator!");
+			// LOG_WARNING("Not implemented");
+			Token binOp;
+			switch (assignmentOp) {
+			case Token::AssignBitOr:
+				binOp = Token::BitOr; break;
+			case Token::AssignBitXor:
+				binOp = Token::BitXor; break;
+			case Token::AssignBitAnd:
+				binOp = Token::BitAnd; break;
+			case Token::AssignShl:
+				binOp = Token::SHL; break;
+			case Token::AssignSar:
+				binOp = Token::SAR; break;
+			case Token::AssignShr:
+				binOp = Token::SHR; break;
+			case Token::AssignAdd:
+				binOp = Token::Add; break;
+			case Token::AssignSub:
+				binOp = Token::Sub; break;
+			case Token::AssignMul:
+				binOp = Token::Mul; break;
+			case Token::AssignDiv:
+				binOp = Token::Div; break;
+			case Token::AssignMod:
+				binOp = Token::Mod; break;
+			default:
+				LOG_WARNING("Invalid assignment operation.");
+				return nullptr;
+			}
+			return 	m_Builder->CreateStore(
+						generate(std::make_shared<BinaryOp>(node->GetLeftHand(), binOp, node->GetRightHand())), 
+						leftHandValue
+					);
 		}
-		return nullptr;
 	}
 	case ElementASTTypes::BinaryOp: {
 		const BinaryOp* node = dynamic_cast<const BinaryOp*>(AstNode.get());
@@ -310,39 +349,53 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		llvm::Value* leftHandValue = generate(node->GetLeftHand());
 		llvm::Value* rightHandValue = generate(node->GetRightHand());
 		llvm::Value* res;
-		if (leftHandValue->getType()->isFloatingPointTy() || rightHandValue->getType()->isFloatingPointTy() ) {
+		if (leftHandValue->getType()->isFloatingPointTy() || rightHandValue->getType()->isFloatingPointTy()) {
 			/* float point */
 			switch (op) {
 			case Token::Comma:
-				res =  rightHandValue; break;
-			case Token::Or ... Token::SHR:
+				res = rightHandValue;
+				break;
+			case Token::Or... Token::SHR:
 				LOG_ERROR("Invalid operator for float points!");
-				res = nullptr; break;
+				res = nullptr;
+				break;
 			case Token::Add:
-				res = m_Builder->CreateFAdd(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateFAdd(leftHandValue, rightHandValue);
+				break;
 			case Token::Sub:
-				res = m_Builder->CreateFSub(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateFSub(leftHandValue, rightHandValue);
+				break;
 			case Token::Mul:
-				res = m_Builder->CreateFMul(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateFMul(leftHandValue, rightHandValue);
+				break;
 			case Token::Div:
-				res = m_Builder->CreateFDiv(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateFDiv(leftHandValue, rightHandValue);
+				break;
 			case Token::Mod:
-				res = m_Builder->CreateFRem(leftHandValue, rightHandValue); break; // ? 
+				res = m_Builder->CreateFRem(leftHandValue, rightHandValue);
+				break;		 // ?
 			case Token::Exp: // TODO
 				LOG_WARNING("Not implemented!");
-				res = nullptr; break;
+				res = nullptr;
+				break;
 			case Token::Equal:
-				res = m_Builder->CreateFCmpUEQ(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateFCmpUEQ(leftHandValue, rightHandValue);
+				break;
 			case Token::NotEqual:
-				res = m_Builder->CreateFCmpUNE(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateFCmpUNE(leftHandValue, rightHandValue);
+				break;
 			case Token::LessThan:
-				res = m_Builder->CreateFCmpULT(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateFCmpULT(leftHandValue, rightHandValue);
+				break;
 			case Token::LessThanOrEqual:
-				res = m_Builder->CreateFCmpULE(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateFCmpULE(leftHandValue, rightHandValue);
+				break;
 			case Token::GreaterThan:
-				res = m_Builder->CreateFCmpUGT(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateFCmpUGT(leftHandValue, rightHandValue);
+				break;
 			case Token::GreaterThanOrEqual:
-				res = m_Builder->CreateFCmpUGE(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateFCmpUGE(leftHandValue, rightHandValue);
+				break;
 			default:
 				res = nullptr;
 			}
@@ -350,51 +403,72 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 			/* integer */
 			switch (op) {
 			case Token::Comma:
-				res = rightHandValue; break;
+				res = rightHandValue;
+				break;
 			case Token::Or: // 考虑短路
-				res = m_Builder->CreateLogicalOr(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateLogicalOr(leftHandValue, rightHandValue);
+				break;
 			case Token::And:
-				res = m_Builder->CreateLogicalAnd(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateLogicalAnd(leftHandValue, rightHandValue);
+				break;
 			case Token::BitOr:
-				res = m_Builder->CreateOr(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateOr(leftHandValue, rightHandValue);
+				break;
 			case Token::BitXor:
-				res = m_Builder->CreateXor(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateXor(leftHandValue, rightHandValue);
+				break;
 			case Token::BitAnd:
-				res = m_Builder->CreateAnd(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateAnd(leftHandValue, rightHandValue);
+				break;
 			case Token::SHL:
-				res = m_Builder->CreateShl(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateShl(leftHandValue, rightHandValue);
+				break;
 			case Token::SAR:
-				res = m_Builder->CreateAShr(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateAShr(leftHandValue, rightHandValue);
+				break;
 			case Token::SHR:
-				res = m_Builder->CreateLShr(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateLShr(leftHandValue, rightHandValue);
+				break;
 			case Token::Add:
-				res = m_Builder->CreateAdd(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateAdd(leftHandValue, rightHandValue);
+				break;
 			case Token::Sub:
-				res = m_Builder->CreateSub(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateSub(leftHandValue, rightHandValue);
+				break;
 			case Token::Mul:
-				res = m_Builder->CreateMul(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateMul(leftHandValue, rightHandValue);
+				break;
 			case Token::Div:
-				res = m_Builder->CreateUDiv(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateUDiv(leftHandValue, rightHandValue);
+				break;
 			case Token::Mod:
-				res = m_Builder->CreateURem(leftHandValue, rightHandValue);  break;
+				res = m_Builder->CreateURem(leftHandValue, rightHandValue);
+				break;
 			case Token::Exp: // TODO
 				LOG_WARNING("Not implemented!");
-				res = nullptr; break;
+				res = nullptr;
+				break;
 			case Token::Equal:
-				res = m_Builder->CreateICmpEQ(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateICmpEQ(leftHandValue, rightHandValue);
+				break;
 			case Token::NotEqual:
-				res = m_Builder->CreateICmpNE(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateICmpNE(leftHandValue, rightHandValue);
+				break;
 			case Token::LessThan:
-				res = m_Builder->CreateICmpULT(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateICmpULT(leftHandValue, rightHandValue);
+				break;
 			case Token::LessThanOrEqual:
-				res = m_Builder->CreateICmpULE(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateICmpULE(leftHandValue, rightHandValue);
+				break;
 			case Token::GreaterThan:
-				res = m_Builder->CreateICmpUGT(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateICmpUGT(leftHandValue, rightHandValue);
+				break;
 			case Token::GreaterThanOrEqual:
-				res = m_Builder->CreateICmpUGE(leftHandValue, rightHandValue); break;
+				res = m_Builder->CreateICmpUGE(leftHandValue, rightHandValue);
+				break;
 			default:
 				res = nullptr;
-		}
+			}
 		} // if
 		if (res == nullptr) {
 			LOG_WARNING("Arithmetic operation fails! Code = %d", static_cast<int>(op));
@@ -413,11 +487,14 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		if (value->getType()->isFloatingPointTy()) {
 			switch (op) {
 			case Token::Sub:
-				res = m_Builder->CreateFNeg(value); break;
+				res = m_Builder->CreateFNeg(value);
+				break;
 			case Token::Not:
-				res = m_Builder->CreateNot(value); break;
+				res = m_Builder->CreateNot(value);
+				break;
 			case Token::BitNot:
-				res = m_Builder->CreateNot(value); break; // ?
+				res = m_Builder->CreateNot(value);
+				break; // ?
 			case Token::Inc: {
 				const Identifier* id = dynamic_cast<const Identifier*>(node->GetExpr().get());
 				ASSERT(id != nullptr, "dynamic cast fails.");
@@ -441,11 +518,14 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		} else {
 			switch (op) {
 			case Token::Sub:
-				res = m_Builder->CreateNeg(value); break;
+				res = m_Builder->CreateNeg(value);
+				break;
 			case Token::Not:
-				res = m_Builder->CreateNot(value); break;
+				res = m_Builder->CreateNot(value);
+				break;
 			case Token::BitNot:
-				res = m_Builder->CreateNot(value); break;
+				res = m_Builder->CreateNot(value);
+				break;
 			case Token::Inc: {
 				const Identifier* id = dynamic_cast<const Identifier*>(node->GetExpr().get());
 				ASSERT(id != nullptr, "dynamic cast fails.");
@@ -468,7 +548,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		} // if
 		if (res == nullptr) {
 			LOG_WARNING("Arithmetic operation fails! Code = %d", static_cast<int>(op));
-		} 
+		}
 		return res;
 	}
 	case ElementASTTypes::IfStatement: {
@@ -667,7 +747,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return m_Builder->CreateCall(func, args);
 	}
 	case ElementASTTypes::MemberAccess: {
-		const MemberAccess* node = dynamic_cast<const MemberAccess *>(AstNode.get());
+		const MemberAccess* node = dynamic_cast<const MemberAccess*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
 		const std::string& structVarName = std::dynamic_pointer_cast<Identifier>(node->GetStructVarExpr())->GetValue();
 		const std::string& memName = node->GetMember();
