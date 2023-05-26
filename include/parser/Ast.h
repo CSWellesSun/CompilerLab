@@ -85,6 +85,10 @@ public:
 	Type GetCastType() const { return m_castType; }
 	void SetType(Type type) { m_type = type; }
 	void SetCastType(Type type) { m_castType = type; }
+	void SetTwoType(Type type) {
+		SetType(type);
+		SetCastType(type);
+	}
 
 protected:
 	Type m_type = Type::UNKNOWN;
@@ -166,7 +170,7 @@ public:
 			m_expr->Dump(depth + 2, mask);
 		}
 	}
-	
+
 	GETS_M(getVarDefExpr, m_expr);
 
 private:
@@ -364,8 +368,16 @@ public:
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "BooleanLiteralAST" << RESET << '\n';
 
+		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "value: " << m_value << '\n';
+
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << typeToString(m_type) << '\n';
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "castType: " << typeToString(m_castType) << '\n';
 	}
 };
 
@@ -380,8 +392,16 @@ public:
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "StringLiteralAST" << RESET << '\n';
 
+		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "value: " << m_value << '\n';
+
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << typeToString(m_type) << '\n';
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "castType: " << typeToString(m_castType) << '\n';
 	}
 };
 
@@ -396,8 +416,16 @@ public:
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "NumberLiteralAST" << RESET << '\n';
 
+		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "value: " << m_value << '\n';
+
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << typeToString(m_type) << '\n';
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "castType: " << typeToString(m_castType) << '\n';
 	}
 
 	// private:
@@ -429,6 +457,7 @@ public:
 	}
 
 	GETS_M(GetArraySize, m_size);
+
 private:
 	std::shared_ptr<Expression> m_size;
 };
@@ -491,11 +520,17 @@ public:
 		printIndent(depth + 1, mask);
 		std::cout << "assigmentOp: " << tokenToString(m_assigmentOp) << '\n';
 
-		mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "rightHandSide: " << '\n';
 
 		m_rightHandSide->Dump(depth + 2, mask);
+
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << typeToString(m_type) << '\n';
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "castType: " << typeToString(m_castType) << '\n';
 	}
 
 
@@ -529,11 +564,17 @@ public:
 		printIndent(depth + 1, mask);
 		std::cout << "binaryOp: " << tokenToString(m_binaryOp) << '\n';
 
-		mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "rightHandSide: " << '\n';
 
 		m_rightHandSide->Dump(depth + 2, mask);
+
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << typeToString(m_type) << '\n';
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "castType: " << typeToString(m_castType) << '\n';
 	}
 
 
@@ -562,11 +603,17 @@ public:
 		printIndent(depth + 1, mask);
 		std::cout << "unaryOp: " << (m_isPrefix ? "prefix " : "postfix ") << tokenToString(m_unaryOp) << '\n';
 
-		mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "subExpr: " << '\n';
 
 		m_subExpr->Dump(depth + 2, mask);
+
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << typeToString(m_type) << '\n';
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "castType: " << typeToString(m_castType) << '\n';
 	}
 
 private:
@@ -801,15 +848,22 @@ public:
 
 		m_expr->Dump(depth + 2, mask);
 
-		mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "index: " << '\n';
 
 		m_index->Dump(depth + 2, mask);
+
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << typeToString(m_type) << '\n';
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "castType: " << typeToString(m_castType) << '\n';
 	}
 
 	GETS_M(GetArrayName, m_expr);
 	GETS_M(GetArrayIndex, m_index);
+
 private:
 	std::shared_ptr<Expression> m_expr; // array name
 	std::shared_ptr<Expression> m_index;
@@ -830,17 +884,16 @@ public:
 		printIndent(depth, mask);
 		std::cout << astColor(depth) << "FunctionCallAST" << RESET << '\n';
 
-		if (!m_args.empty())
-			mask = set(mask, depth + 1);
+		mask = set(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "expr: " << '\n';
 
 		m_expr->Dump(depth + 2, mask);
 
 		if (!m_args.empty()) {
-			mask = unset(mask, depth + 1);
 			printIndent(depth + 1, mask);
 			std::cout << "args: " << '\n';
+
 			mask = set(mask, depth + 2);
 			for (const auto& arg: m_args) {
 				if (arg == m_args.back())
@@ -848,6 +901,12 @@ public:
 				arg->Dump(depth + 2, mask);
 			}
 		}
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << typeToString(m_type) << '\n';
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "castType: " << typeToString(m_castType) << '\n';
 	}
 
 private:
@@ -872,9 +931,15 @@ public:
 
 		m_expr->Dump(depth + 2, mask);
 
-		mask = unset(mask, depth + 1);
 		printIndent(depth + 1, mask);
 		std::cout << "member: " << m_member << '\n';
+
+		printIndent(depth + 1, mask);
+		std::cout << "type: " << typeToString(m_type) << '\n';
+
+		mask = unset(mask, depth + 1);
+		printIndent(depth + 1, mask);
+		std::cout << "castType: " << typeToString(m_castType) << '\n';
 	}
 
 private:

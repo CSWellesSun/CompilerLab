@@ -8,7 +8,7 @@ target("compiler")
     if is_plat("macosx") then
         add_toolchains("clang") 
         add_cxflags("-Wno-unused-parameter")
-        add_includedirs("/opt/homebrew/Cellar/llvm/16.0.4/include")
+        add_includedirs("/opt/homebrew/Cellar/llvm@14/14.0.6/include")
     else 
         add_includedirs("/usr/lib/llvm-14/include")
         add_toolchains("llvm") -- 使用llvm工具链

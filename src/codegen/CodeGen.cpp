@@ -2,10 +2,11 @@
 #include "common/Defs.h"
 #include "parser/Ast.h"
 
+#include <fstream>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
 #include <memory>
-#include <fstream>
+
 
 using namespace minisolc;
 
@@ -239,13 +240,13 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		} catch (std::exception& e) {
 			LOG_ERROR("Number Literial fails, %s", e.what());
 		}
-		
+
 		return res;
 	}
 	case ElementASTTypes::Assignment: {
 		const Assignment* node = dynamic_cast<const Assignment*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
-		llvm::Value  *leftHandValue, *rightHandValue;
+		llvm::Value *leftHandValue, *rightHandValue;
 		if (node->GetLeftHand()->GetASTType() == ElementASTTypes::Identifier) {
 			const Identifier* leftHand = dynamic_cast<const Identifier*>(node->GetLeftHand().get());
 			ASSERT(leftHand != nullptr, "dynamic cast fails.");
@@ -509,7 +510,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		llvm::Value* arrIdx = generate(node->GetArrayIndex());
 
 		auto ptr = m_Builder->CreateInBoundsGEP(type, varptr, arrIdx);
-		
+
 		auto res = m_Builder->CreateAlignedLoad(type, ptr, llvm::MaybeAlign(4ull));
 
 		return res;
@@ -553,7 +554,8 @@ void CodeGenerator::createSyscall() {
 	using namespace std::literals;
 	/* scanf */
 	llvm::FunctionType* scanf_type = llvm::FunctionType::get(m_Builder->getInt32Ty(), true);
-	llvm::Function* scanf_func = llvm::Function::Create(scanf_type, llvm::Function::ExternalLinkage, llvm::Twine("scanf"), m_Module.get());
+	llvm::Function* scanf_func
+		= llvm::Function::Create(scanf_type, llvm::Function::ExternalLinkage, llvm::Twine("scanf"), m_Module.get());
 	scanf_func->setCallingConv(llvm::CallingConv::C);
 	m_syscalls.emplace("scanf"s, std::move(scanf_func));
 
@@ -561,10 +563,11 @@ void CodeGenerator::createSyscall() {
 	std::vector<llvm::Type*> arg_types;
 	arg_types.push_back(m_Builder->getInt8PtrTy());
 	auto printf_type = llvm::FunctionType::get(m_Builder->getInt32Ty(), llvm::makeArrayRef(arg_types), true);
-	auto printf_func = llvm::Function::Create(printf_type, llvm::Function::ExternalLinkage, llvm::Twine("printf"), m_Module.get());
+	auto printf_func
+		= llvm::Function::Create(printf_type, llvm::Function::ExternalLinkage, llvm::Twine("printf"), m_Module.get());
 	printf_func->setCallingConv(llvm::CallingConv::C);
 	m_syscalls.emplace("printf"s, std::move(printf_func));
-	
+
 	return;
 }
 
@@ -579,7 +582,7 @@ void CodeGenerator::srctollFile(const std::string& srcfilename) const {
 	std::string desfilename = srcfilename.substr(0, stridx + 1) + "ll";
 
 	std::error_code ec;
-	llvm::raw_fd_stream ofs {llvm::StringRef(desfilename), ec};
+	llvm::raw_fd_stream ofs{llvm::StringRef(desfilename), ec};
 	m_Module->print(ofs, nullptr);
 
 	if (bool(ec)) {
