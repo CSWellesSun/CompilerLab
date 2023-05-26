@@ -435,8 +435,9 @@ private:
 
 class StructDefinition final: public VariableDefinition {
 public:
-	StructDefinition(std::string name, std::vector<std::shared_ptr<VariableDefinition>> memList)
-		: VariableDefinition(name, std::make_shared<ElementaryTypeName>(Token::Struct)), m_MemList(std::move(memList)) {
+	StructDefinition(std::string name, std::vector<std::shared_ptr<VariableDefinition>> memList, bool isVariable, const std::string& structName)
+		: VariableDefinition(name, std::make_shared<ElementaryTypeName>(Token::Struct)), 
+		  m_MemList(std::move(memList)), m_isVariable(isVariable), m_StructName (structName) {
 		m_ASTType = ElementASTTypes::StructDefinition;
 	}
 	void Dump(size_t depth, size_t mask) const override {
@@ -463,8 +464,14 @@ public:
 		}
 	}
 
+	GETS_M(GetStructMemList, m_MemList);
+	GETS_M(GetisVariable, m_isVariable);
+	GETS_M(GetStructName, m_StructName)
+
 private:
 	std::vector<std::shared_ptr<VariableDefinition>> m_MemList;
+	bool m_isVariable;
+	std::string m_StructName;
 };
 
 class Assignment final: public Expression {
@@ -877,6 +884,8 @@ public:
 		std::cout << "member: " << m_member << '\n';
 	}
 
+	GETS_M(GetStructVarExpr, m_expr);
+	GETS_M(GetMember, m_member);
 private:
 	std::shared_ptr<Expression> m_expr;
 	std::string m_member;

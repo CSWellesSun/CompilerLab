@@ -28,6 +28,7 @@ std::shared_ptr<SourceUnit> Parser::parseSourceUnit() {
 				subnodes.push_back(parseVariableDefinition());
 				expect(Token::Semicolon);
 			} else if (peekCur(Token::Struct)) {
+				/* Struct definition. */
 				subnodes.push_back(parseStructDefinition());
 				expect(Token::Semicolon);
 			} else if (peekCur(Token::Semicolon)) {
@@ -79,26 +80,30 @@ std::shared_ptr<VariableDefinition> Parser::parseVariableDefinition() {
 
 std::shared_ptr<StructDefinition> Parser::parseStructDefinition() {
 	// Partially completes.
+	using StructMem_t = std::vector<std::shared_ptr<VariableDefinition>>;
 	std::string name;
 	try {
 		expect(Token::Struct);
-		std::vector<std::shared_ptr<VariableDefinition>> struct_members;
 		std::shared_ptr<TypeName> type = std::make_shared<ElementaryTypeName>(Token::Struct);
 		expectGet(Token::Identifier, name);
 
 		if (match(Token::LBrace)) {
+			/* Struct type declaration. */
+			StructMem_t struct_members;
 			while (!match(Token::RBrace)) {
 				struct_members.push_back(parseVariableDefinition());
 				match(Token::Semicolon);
 			}
+			return std::make_shared<StructDefinition>(name, std::move(struct_members), false, name);
+		} else {
+			/* A struct variable declaration. */
+			std::string var;
+			expectGet(Token::Identifier, var);
+			return std::make_shared<StructDefinition>(var, StructMem_t{}, true, name);
 		}
-
-		return std::make_shared<StructDefinition>(name, std::move(struct_members));
 	} catch (ParseError& e) {
 		e.print();
 	}
-	/* TODO: It may be necessary for the parser to store all defined structs
-	   so as to define structural variables afterwards.*/
 	return nullptr;
 }
 
@@ -162,7 +167,12 @@ std::shared_ptr<ParameterList> Parser::parseParameterList() {
 		} else {
 			while (true) {
 				/* Here struct parameter is not implemented. */
-				params.push_back(parseVariableDefinition());
+				auto para = parseVariableDefinition();
+				if (para->GetDeclarationType()->GetType() == Token::Struct) {
+					LOG_WARNING("Cannot use struct as function parameter.");
+				} else {
+					params.push_back(para);
+				}
 				if (match(Token::Comma)) {
 					continue;
 				} else {

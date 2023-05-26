@@ -99,8 +99,37 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return res;
 	}
 	case ElementASTTypes::StructDefinition: {
-		LOG_WARNING("Not implemented!");
-		return nullptr;
+		const StructDefinition* node = dynamic_cast<const StructDefinition*>(AstNode.get());
+		ASSERT(node != nullptr, "dynamic cast fails.");
+		llvm::Value* res;
+		const std::string& structName = node->GetStructName();
+		if (node->GetisVariable()) {
+			/* A struct variable declaration. */
+			std::shared_ptr<MyStructType> myStruct = this->getStructType(structName);
+			ASSERT(myStruct != nullptr, "Invalid struct variable declaration!");
+			res = m_Builder->CreateAlloca(myStruct->GetStructType(), nullptr);
+			setSymbolValue(node->GetName(), res);
+			setSymbolType(node->GetName(), myStruct->GetStructType());
+
+		} else {
+			/* Struct type definition. */
+			std::shared_ptr<MyStructType> myStruct = std::make_shared<MyStructType>();
+			std::vector<llvm::Type*> stMems;
+			const auto& MemList = node->GetStructMemList();
+			llvm::Value* val;
+			for(const auto& mem : MemList) {
+				// val = generate(mem);
+				stMems.push_back(getLLVMType(mem->GetDeclarationType()->GetType()));
+				myStruct->AddElementName(mem->GetName());
+			}
+			myStruct->GetStructType() = llvm::StructType::create(*m_Context);
+			myStruct->GetStructType()->setBody(stMems);
+			myStruct->GetStructType()->setName(structName);
+			m_BlockStack.back().structdefs.push_back(std::move(myStruct));
+			res = nullptr;
+		}
+		
+		return res;
 	}
 	case ElementASTTypes::Block: {
 		if (beginBlock) {
@@ -245,21 +274,31 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		const Assignment* node = dynamic_cast<const Assignment*>(AstNode.get());
 		ASSERT(node != nullptr, "dynamic cast fails.");
 		llvm::Value  *leftHandValue, *rightHandValue;
-		if (node->GetLeftHand()->GetASTType() == ElementASTTypes::Identifier) {
-			const Identifier* leftHand = dynamic_cast<const Identifier*>(node->GetLeftHand().get());
-			ASSERT(leftHand != nullptr, "dynamic cast fails.");
-			leftHandValue = getSymbolValue(leftHand->GetValue());
-			rightHandValue = generate(node->GetRightHand());
-		} else if (node->GetLeftHand()->GetASTType() == ElementASTTypes::IndexAccess) {
-			leftHandValue = generate(node->GetLeftHand(), true, true);
-			rightHandValue = generate(node->GetRightHand());
-		} else {
-			LOG_ERROR("Invalid type in assignment.");
-			return nullptr;
+		switch (node->GetLeftHand()->GetASTType()) {
+			case ElementASTTypes::Identifier : {
+				const Identifier* leftHand = dynamic_cast<const Identifier*>(node->GetLeftHand().get());
+				ASSERT(leftHand != nullptr, "dynamic cast fails.");
+				leftHandValue = getSymbolValue(leftHand->GetValue());
+				rightHandValue = generate(node->GetRightHand());
+				break;
+			}
+			case ElementASTTypes::IndexAccess:
+				[[fallthrough]];
+			case ElementASTTypes::MemberAccess:
+				leftHandValue = generate(node->GetLeftHand(), true, true);
+				rightHandValue = generate(node->GetRightHand());
+				break;
+			default:
+				LOG_ERROR("Invalid type in assignment.");
+				return nullptr;
 		}
+
 		Token assignmentOp = node->GetAssigmentOp();
 		if (assignmentOp == Token::Assign) {
 			return m_Builder->CreateStore(rightHandValue, leftHandValue);
+		} else {
+			/* This maybe won't happen. */
+			LOG_ERROR("Invalid Assignment operator!");
 		}
 		return nullptr;
 	}
@@ -627,8 +666,25 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		return m_Builder->CreateCall(func, args);
 	}
 	case ElementASTTypes::MemberAccess: {
-		LOG_WARNING("Not implemented");
-		return nullptr;
+		const MemberAccess* node = dynamic_cast<const MemberAccess *>(AstNode.get());
+		ASSERT(node != nullptr, "dynamic cast fails.");
+		const std::string& structVarName = std::dynamic_pointer_cast<Identifier>(node->GetStructVarExpr())->GetValue();
+		const std::string& memName = node->GetMember();
+		llvm::Value* val = this->getSymbolValue(structVarName);
+		ASSERT(val != nullptr, "Invalid symbol!");
+		std::shared_ptr<MyStructType> type = this->getStructSymbolType(structVarName);
+		ASSERT(type != nullptr, "Invalid struct type!");
+		unsigned memIdx = type->findIndexofName(memName);
+		if (memIdx == static_cast<unsigned>(-1)) {
+			LOG_WARNING("Cannot find member %s.", memName.c_str());
+			return nullptr;
+		}
+		llvm::Type* memType = type->GetStructType()->getTypeAtIndex(memIdx);
+		llvm::Value* memIdxVal = m_Builder->getInt32(memIdx);
+		auto ptr = m_Builder->CreateInBoundsGEP(type->GetStructType(), val, {m_Builder->getInt32(0), memIdxVal});
+		// ptr = m_Builder->CreatePointerCast(ptr, memType->getPointerTo());
+		auto res = m_Builder->CreateLoad(memType, ptr);
+		return isleftval ? ptr : res;
 	}
 	default:
 		// Not implemented!
