@@ -26,9 +26,9 @@ int main(int argc, const char* argv[]) {
 	Parser parser(tokenStream);
 	parser.parse();
 	parser.Dump();
-	// TypeSystem typeSystem = TypeSystem(parser);
-	// typeSystem.Dump();
-	// cout << '\n';
+	TypeSystem typeSystem(parser);
+	typeSystem.Dump();
+	cout << '\n';
 	CodeGenerator codeGenerator(parser.GetAst());
 	codeGenerator.Dump();
 	codeGenerator.srctollFile(input);
