@@ -1,13 +1,20 @@
 function main() returns (int) {
-    int a[10];
-    a[0] = 1;
-    a[1] = 1;
-    for (int i = 2; i < 10; ++i) {
-        a[i] = a[i-1] + a[i-2];
-    }
-    for (int i = 0; i < 10; ++i) {
-        printf("%d ", a[i]);
-    }
-    printf("\n");
+    struct st {
+        int a;
+        double b;
+    };
+    struct st m;
+    struct st n;
+    m.b = 1.0;
+    n = m; // Struct Assignment
+    printf("%lf\n", n.b);
+
+    int i = 10;
+    i <<= 3; // assign operators
+    printf("%d\n", i);
     return 0;
 }
+
+// Output:
+// 1.000000
+// 80
