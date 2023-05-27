@@ -62,11 +62,11 @@ Type TypeSystem::analyze(const std::shared_ptr<BaseAST>& AstNode) {
 		return Type::UNKNOWN;
 	}
 	case ElementASTTypes::ArrayDefinition: {
-		LOG_ERROR("Not Implemented!");
+		LOG_WARNING("Not Implemented!");
 		return Type::UNKNOWN;
 	}
 	case ElementASTTypes::StructDefinition: {
-		LOG_ERROR("Not Implemented!");
+		LOG_WARNING("Not Implemented!");
 		return Type::UNKNOWN;
 	}
 	case ElementASTTypes::Block: {
@@ -179,7 +179,7 @@ Type TypeSystem::analyze(const std::shared_ptr<BaseAST>& AstNode) {
 			}
 			return node->GetCastType();
 		} else {
-			LOG_ERROR("Not Implemented Yet.");
+			LOG_WARNING("Not Implemented Yet.");
 			return Type::UNKNOWN;
 			// a[3],a.i……
 		}
@@ -408,11 +408,11 @@ Type TypeSystem::analyze(const std::shared_ptr<BaseAST>& AstNode) {
 		return Type::UNKNOWN;
 	}
 	case ElementASTTypes::BreakStatement: {
-		LOG_INFO("Not Implemented");
+		LOG_WARNING("Not Implemented");
 		return Type::UNKNOWN;
 	}
 	case ElementASTTypes::ContinueStatement: {
-		LOG_INFO("Not Implemented");
+		LOG_WARNING("Not Implemented");
 		return Type::UNKNOWN;
 	}
 	case ElementASTTypes::ExpressionStatement: {
@@ -448,7 +448,7 @@ Type TypeSystem::analyze(const std::shared_ptr<BaseAST>& AstNode) {
 		return Type::UNKNOWN;
 	}
 	case ElementASTTypes::MemberAccess: {
-		LOG_INFO("Not Implemented");
+		LOG_WARNING("Not Implemented");
 		return Type::UNKNOWN;
 	}
 	default:
