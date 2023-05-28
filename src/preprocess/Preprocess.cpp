@@ -28,14 +28,14 @@ void Preprocess::preprocess(std::filesystem::path filePath, std::shared_ptr<Line
 	std::string line;
 	std::stringstream ss(content);
 	while (getline(ss, line, '\n')) {
-			std::shared_ptr<Line> linePtr
+		std::shared_ptr<Line> linePtr
 			= std::make_shared<Line>(line + "\n", ++lineNumber, getRelativePath(filePath).string(), includeLine);
 		if (line.find("#include") == 0) {
 			processInclude(line, dirPath, linePtr);
 		} else if (line.find("#define") == 0) {
 			processDefine(line);
 		} else {
-			for (const auto& define : m_defines) {
+			for (const auto& define: m_defines) {
 				size_t pos = linePtr->source.find(define.first);
 				while (pos != std::string::npos) {
 					linePtr->source.replace(pos, define.first.length(), define.second);

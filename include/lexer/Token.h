@@ -225,6 +225,16 @@ enum class StateMutability {
 
 enum class Visibility { Default, Private, Internal, Public, External };
 
+enum class Type {
+	UNKNOWN,
+	INTEGER,
+	DOUBLE,
+	FLOAT,
+	STRING,
+	BOOLEAN,
+	//... and other types if needed.
+};
+
 Token keywordByName(std::string _name);
 char const* tokenToString(Token tok);
 
@@ -233,6 +243,9 @@ char const* stateMutabilityToString(StateMutability _state);
 
 Visibility visibilityByName(std::string _name);
 char const* visibilityToString(Visibility _visibility);
+
+Type typeByName(std::string _name);
+char const* typeToString(Type type);
 
 constexpr bool isType(Token tok) { return tok >= Token::Int && tok < Token::TypesEnd; }
 constexpr bool isLiteral(Token tok) { return tok >= Token::TrueLiteral && tok <= Token::CommentLiteral; }
@@ -277,17 +290,4 @@ struct TokenInfo {
 	TokenInfo(const Token tok, std::string&& v, std::shared_ptr<Line> line, size_t start, size_t end)
 		: m_tok(tok), m_val(v), m_loc(line, start, end){};
 };
-
-enum class Type {
-	UNKNOWN,
-	INTEGER,
-	DOUBLE,
-	FLOAT,
-	STRING,
-	BOOLEAN,
-	//... and other types if needed.
-};
-
-Type typeByName(std::string _name);
-char const* typeToString(Type type);
 }
