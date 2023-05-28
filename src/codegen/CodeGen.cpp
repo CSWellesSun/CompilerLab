@@ -170,7 +170,10 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		const auto& argsvt
 			= (paralist != nullptr) ? paralist->GetArgs() : std::vector<std::shared_ptr<VariableDefinition>>{};
 		for (const auto& arg: argsvt) {
-			argTypes.push_back(getLLVMType(arg->GetDeclarationType()->GetType()));
+			if (arg->GetASTType() == ElementASTTypes::PlainVariableDefinition)
+				argTypes.push_back(getLLVMType(arg->GetDeclarationType()->GetType()));
+			// else if (arg->GetASTType() == ElementASTTypes::ArrayDefinition)
+			// 	argTypes.push_back(getLLVMType(arg->GetDeclarationType()->GetType())->getPointerTo());
 		}
 		llvm::FunctionType* funcType
 			= llvm::FunctionType::get(getLLVMType(node->GetDeclarationType()->GetType()), argTypes, false);
@@ -192,10 +195,11 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		m_Builder->SetInsertPoint(bb);
 		pushBlock();
 
-		// Record the function arguments in the Symbol map.
-		for (auto& arg: func->args()) {
-			setSymbolValue(std::string(arg.getName()), &arg);
-			setSymbolType(std::string(arg.getName()), arg.getType());
+		for (size_t i = 0; i < func->arg_size(); ++i) {
+			auto arg = func->getArg(static_cast<unsigned int>(i));
+			setSymbolValue(std::string(arg->getName()), arg);
+			setSymbolType(std::string(arg->getName()), arg->getType());
+			m_Builder->CreateStore(arg, generate(argsvt.at(i)));
 		}
 
 		// Generate the body of the function.
