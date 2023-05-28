@@ -89,8 +89,8 @@ private:
 	void popBlock() { m_BlockStack.pop_back(); };
 
 
-	llvm::Constant* getInitValue(Token tok);
-	llvm::Type* getLLVMType(Token type);
+	static llvm::Constant* getInitValue(Token tok);
+	static llvm::Type* getLLVMType(Token type);
 
 	void createSyscall();
 };

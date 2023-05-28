@@ -81,7 +81,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 			res = generate(
 				std::make_shared<Assignment>(std::make_shared<Identifier>(node->GetName()), Token::Assign, expr));
 		} else {
-			// initialize the variable, maybe change later
+			// initialize the variable
 			llvm::Value* value = getInitValue(type);
 			if (value != nullptr)
 				m_Builder->CreateStore(value, res);

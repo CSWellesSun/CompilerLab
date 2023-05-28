@@ -288,17 +288,7 @@ Type TypeSystem::analyze(const std::shared_ptr<BaseAST>& AstNode) {
 		case Token::Exp: // TODO
 			LOG_WARNING("Not implemented!");
 			break;
-		case Token::Equal:
-			[[fallthrough]];
-		case Token::NotEqual:
-			[[fallthrough]];
-		case Token::LessThan:
-			[[fallthrough]];
-		case Token::LessThanOrEqual:
-			[[fallthrough]];
-		case Token::GreaterThan:
-			[[fallthrough]];
-		case Token::GreaterThanOrEqual:
+		case Token::Equal ... Token::GreaterThanOrEqual:
 			if (typeLeft == Type::UNKNOWN || typeRight == Type::UNKNOWN) {
 				LOG_ERROR(
 					"Type Error: BinaryOp Equal/NotEqual/LessThan/LessThanOrEqual/GreaterThan/GreaterThanOrEqual.");
