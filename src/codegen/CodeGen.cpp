@@ -684,6 +684,7 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		llvm::Function* function = m_Builder->GetInsertBlock()->getParent();
 		llvm::BasicBlock* block = llvm::BasicBlock::Create(*m_Context);
 		llvm::BasicBlock* after = llvm::BasicBlock::Create(*m_Context);
+		m_Builder->CreateBr(block);
 		m_Builder->SetInsertPoint(block);
 		function->getBasicBlockList().push_back(block);
 		pushBlock();
