@@ -11,8 +11,7 @@
 class MyStructType{
 public:
     MyStructType() = default;
-    void AddElementName(const std::string& sr) { 
-        // LOG_INFO("TEST2");
+    void AddElementName(const std::string& sr) {
         Names.push_back(sr); 
     }
     std::string getNameAtIndex(unsigned N) const { return Names.at(N); }

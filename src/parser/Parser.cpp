@@ -98,8 +98,13 @@ std::shared_ptr<StructDefinition> Parser::parseStructDefinition() {
 		} else {
 			/* A struct variable declaration. */
 			std::string var;
+			std::shared_ptr<minisolc::Expression> expr;
 			expectGet(Token::Identifier, var);
-			return std::make_shared<StructDefinition>(var, StructMem_t{}, true, name);
+			if (match(Token::Assign)) {
+				/* Initialize list. */
+				expr = parseExpression();
+			}
+			return std::make_shared<StructDefinition>(var, StructMem_t{}, true, name, expr);
 		}
 	} catch (ParseError& e) {
 		e.print();

@@ -111,7 +111,15 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 			res = m_Builder->CreateAlloca(myStruct->GetStructType(), nullptr);
 			setSymbolValue(node->GetName(), res);
 			setSymbolType(node->GetName(), myStruct->GetStructType());
-
+			if (node->GetInitExpr() != nullptr) {
+				auto expr = node->GetInitExpr();
+				res = generate(
+					std::make_shared<Assignment>(	std::make_shared<Identifier>(node->GetName()), 
+													Token::Assign, 
+													node->GetInitExpr()
+					)
+				);
+			}
 		} else {
 			/* Struct type definition. */
 			std::shared_ptr<MyStructType> myStruct = std::make_shared<MyStructType>();
@@ -237,13 +245,13 @@ llvm::Value* CodeGenerator::generate(const std::shared_ptr<BaseAST>& AstNode, bo
 		size_t stridx;
 
 		// escape character
-		if ((stridx = valueString.find("\\n")) != std::string::npos) {
+		while ((stridx = valueString.find("\\n")) != std::string::npos) {
 			valueString.replace(stridx, 2, "\n");
 		}
-		if ((stridx = valueString.find("\\r")) != std::string::npos) {
+		while ((stridx = valueString.find("\\r")) != std::string::npos) {
 			valueString.replace(stridx, 2, "\r");
 		}
-		if ((stridx = valueString.find("\\t")) != std::string::npos) {
+		while ((stridx = valueString.find("\\t")) != std::string::npos) {
 			valueString.replace(stridx, 2, "\t");
 		}
 
